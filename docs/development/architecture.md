@@ -129,3 +129,112 @@ or filesystem snapshots. Keep an independent encrypted export and test recovery
 on a clean home before relying on the storage key alone. Values necessarily
 become plaintext in process memory and the process environment when loaded;
 root or a process acting as the unlocked user can retrieve them.
+
+## Proposed hardware-independent key isolation
+
+**Status: PROPOSAL, 2026-10-19. Not implemented.** The requirement is automatic
+loading on ordinary Linux desktops, VPS hosts, and virtual machines, including
+SSH and unattended jobs after reboot. No TPM, desktop login, recurring password,
+or network service should be required. One-time administrator provisioning is
+the deployment cost of the stronger local mode; installations without that
+authority retain the current file-key mode and its stated protection boundary.
+
+### Recommended boundary
+
+Keep the current authenticated encrypted configuration. Move its random storage
+key out of the user's home and into a small local key service running under a
+dedicated non-login service account. Its key directory is mode `0700`, with
+mode-`0600` per-user key records, under an administrator-provisioned system state
+directory such as `/var/lib/envman-keys`. The daemon needs no root privileges,
+network listener, shell execution, or access to users' configuration files.
+Administrator-owned service code and configuration must not import executable
+code from an enrolled user's checkout or tool environment.
+
+Envman and the retained shell loader request the enrolled user's existing key
+over a local Unix stream socket, decrypt in memory, and load variables as today.
+Use kernel-provided `SO_PEERCRED` credentials to authorize the connected user;
+never trust a username, UID, path, or environment variable supplied in a request.
+The [Linux Unix socket documentation](https://man7.org/linux/man-pages/man7/unix.7.html)
+describes this peer-identity mechanism. A request cannot select another user's
+key. Scope each key to the authenticated UID and a random store identifier so
+separate XDG stores remain independent; the identifier is not a credential.
+Administrator enrollment and retirement own the UID-to-key associations;
+UID reuse requires retirement and fresh enrollment, not inherited access.
+
+Use a socket path under an administrator-controlled directory and verify the
+server identity as well as the client identity. Bound request sizes, connection
+counts, and timeouts; close connections after each request. Do not log keys,
+place them in arguments or environment variables, or persist a client key cache.
+Disable service core dumps and restrict its filesystem access. Memory and swap
+handling still need evaluation; Python cannot promise reliable key zeroization.
+Use systemd socket activation where available; other supported supervisors must
+provide the same ownership and reboot behavior. Do not add a setuid helper or
+passwordless sudo invocation to shell startup.
+Server verification must account for socket activation: peer credentials for a
+supervisor-created listener need not identify the eventual service account.
+
+This improves protection against a copied user home, dotfile synchronization,
+and accidental exposure of the configuration and user-state directories together.
+It does **not** stop arbitrary code running as the enrolled user from requesting
+the same key. It does not protect against root, service-account compromise,
+hypervisor access, or a complete VM/disk snapshot containing the system keys.
+It also does not revoke variables already inherited by running processes.
+The benefit is separation of file access and backup boundaries, not isolation
+from the user who is deliberately authorized to load every variable.
+
+For full-VM-copy protection, a separate design must keep an unlocking secret
+outside the VM, through external key custody or operator input. External custody
+also needs a non-clonable or externally controlled authorization mechanism;
+moving the key behind an API while leaving a reusable token in the same snapshot
+does not solve that problem. That requirement introduces an external trust and
+availability dependency and is outside this local, offline proposal.
+
+### Integration and migration
+
+Add a shared storage-key resolver used by `EnvironmentStore`, snapshot migration,
+and the retained decryptor. Persist explicit provider selection; absent metadata
+continues to mean the existing file provider. An unavailable selected service
+must fail promptly without emitting partial assignments, generating a replacement
+key, or silently reverting to the old file. Interactive shells remain usable;
+automation must receive an actionable nonzero result rather than continue on an
+assumption that secrets loaded. Existing inherited values remain outside that
+guarantee.
+
+Enrollment must transfer the same data key so historical encrypted snapshots
+remain readable. Extend the existing preview/apply migration workflow: lock and
+revalidate the store and provider, securely enroll the key, verify retrieval and
+decryption, install compatible retained loaders, and atomically activate the
+provider. Remove the original file key only after verification and activation;
+until cleanup succeeds, report the migration as incomplete. Make interrupted
+steps reconcilable without silently replacing either key. Provider changes must
+participate in stale-writer detection alongside the document fingerprint.
+
+Before retiring the file key, verify an independent encrypted export and its
+separately retrievable recovery credential. Test restoration without the key
+service on an isolated home. Old external copies of the original key remain
+sensitive. Check alternate exposure paths too: an encrypted export copied with
+its fallback `encryption.key`, or an old plaintext snapshot, defeats the intended
+home-copy protection. The retained runtime must include the shared socket client and keep
+working after CLI removal; removing the service is a separate operation requiring
+an explicit migration or recovery plan. No host enrollment or key migration is
+authorized merely by this proposal.
+
+### Acceptance before implementation is released
+
+- Prove ordinary desktop, SSH public-key login, and unattended loading after
+  reboot without a desktop session, prompt, hardware dependency, or network.
+- Prove one enrolled UID cannot retrieve another UID's key; reject forged
+  request identities, untrusted endpoints, malformed messages, and unknown users.
+  Verify separate stores for one UID and failure to decrypt a home-only copy
+  without access to its original key service.
+- Prove bounded failure when the service is unavailable and no partial exports,
+  disk key cache, plaintext fallback, or secret-bearing diagnostic output.
+- Exercise interrupted enrollment, concurrent writes/provider changes, old
+  snapshot decryption, recovery export restoration, and retained loading after
+  CLI removal. Review daemon isolation and endpoint authentication separately.
+- Measure cold and warm shell startup overhead on a modest VM before choosing
+  a timeout or claiming that the experience is friction-free.
+
+The next implementation step is an isolated service/client prototype with
+synthetic keys. Existing stores and host services must remain untouched until
+the protocol and failure behavior pass those checks.
