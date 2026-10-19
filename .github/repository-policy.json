@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "rulesets": [
+    {
+      "name": "Protect main branch",
+      "target": "branch",
+      "enforcement": "active",
+      "include": ["refs/heads/main"],
+      "exclude": [],
+      "require_linear_history": true,
+      "require_signed_commits": true,
+      "block_deletions": true,
+      "block_force_pushes": true
+    }
+  ]
+}

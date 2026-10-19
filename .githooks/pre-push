@@ -1,25 +1,43 @@
 #!/bin/sh
 set -eu
-if [ -n "$(git status --porcelain)" ]; then
-  printf '%s\n' 'pre-push: worktree must be clean' >&2
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+  printf '%s\n' 'pre-push: tracked worktree and index must be clean' >&2
   exit 1
 fi
 plan=$(uv run --locked --no-sync python scripts/version.py plan)
 target=$(printf '%s' "$plan" | sed -n 's/.*"target": "\([^"]*\)".*/\1/p')
 current=$(cat VERSION)
 if [ "$target" = "$current" ]; then
-  exit 0
-fi
-printf '%s\n' "$target" > VERSION
-uv run --locked --no-sync python scripts/version.py sync
-uv lock
-unexpected=$(git status --porcelain | awk '{print $2}' | grep -Ev '^(VERSION|README\.md|uv\.lock)$' || true)
-if [ -n "$unexpected" ]; then
-  printf '%s\n' "pre-push: version sync changed unexpected path(s): $unexpected" >&2
-  git restore --worktree VERSION README.md uv.lock
+  uv run --locked --no-sync python scripts/version.py check
+elif uv run --locked --no-sync python -c 'import sys; raise SystemExit(0 if tuple(map(int, sys.argv[1].split("."))) < tuple(map(int, sys.argv[2].split("."))) else 1)' "$target" "$current"; then
+  uv run --locked --no-sync python scripts/version.py check
+else
+  printf '%s\n' "$target" > VERSION
+  uv run --locked --no-sync python scripts/version.py sync
+  uv lock
+  unexpected=$(git status --porcelain --untracked-files=no | awk '{print $2}' | grep -Ev '^(VERSION|README\.md|uv\.lock)$' || true)
+  if [ -n "$unexpected" ]; then
+    printf '%s\n' "pre-push: version sync changed unexpected path(s): $unexpected" >&2
+    git restore --worktree VERSION README.md uv.lock
+    exit 1
+  fi
+  git add VERSION README.md uv.lock
+  git -c user.email=pgp@cruxexperts.com -c user.signingkey=AF7968466B5B39C5E928FEFE716342D3EFBA5522 -c gpg.format=openpgp -c gpg.program=gpg commit -S -m "chore: sync release version $target"
+  sync_commit=$(git rev-parse HEAD)
+  uv run --locked --no-sync python scripts/check_signatures.py --commit "$sync_commit"
+  printf '%s\n' "pre-push: created version-sync commit; review and push again." >&2
   exit 1
 fi
-git add VERSION README.md uv.lock
-git commit -m "chore: sync release version $target"
-printf '%s\n' "pre-push: created version-sync commit; review and push again." >&2
-exit 1
+
+while IFS=' ' read -r local_ref local_oid remote_ref remote_oid; do
+  [ "$remote_ref" = "refs/heads/main" ] || continue
+  case "$local_oid" in ''|*[!0]*) ;; *) continue ;; esac
+  case "$remote_oid" in ''|*[!0]*) ;; *) continue ;; esac
+  if ! commits=$(git rev-list --reverse "$remote_oid..$local_oid"); then
+    printf '%s\n' "pre-push: cannot determine outgoing commits for $remote_ref" >&2
+    exit 1
+  fi
+  for commit in $commits; do
+    uv run --locked --no-sync python scripts/check_signatures.py --commit "$commit"
+  done
+done

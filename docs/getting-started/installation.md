@@ -4,7 +4,7 @@ title: Install Envman
 
 # Install Envman
 
-Envman 0.1.11 supports Linux x86_64, CPython `>=3.12,<3.13`, and `uv >=0.11`. The installer is a single command that works on Ubuntu servers with Python 3.12 and uv already installed:
+Envman 1.0.0 supports Linux x86_64, CPython `>=3.12,<3.13`, and `uv >=0.11`. The installer is a single command that works on Ubuntu servers with Python 3.12 and uv already installed:
 
 ```bash
 uv run --python 3.12 --script https://github.com/CruxExperts/envman/releases/latest/download/install.py
@@ -63,7 +63,7 @@ envman update --install-skill --skill-scope global --skill-target codex
 envman update --install-skill --skill-scope repository --skill-target opencode
 ```
 
-After installation, Envman writes an atomic mode-`0600` receipt at `${XDG_STATE_HOME:-$HOME/.local/state}/envman/install.json`. The receipt records the installed version, provider, repository, manifest URL, verified wheel and `uv` versions; receipts created by the 0.1.11 installer record `installer_version: 0.1.11`. Updates use only the recorded provider and manifest source.
+After installation, Envman writes an atomic mode-`0600` receipt at `${XDG_STATE_HOME:-$HOME/.local/state}/envman/install.json`. The receipt records the installed version, provider, repository, manifest URL, verified wheel and `uv` versions. The installer version identifies the installer that created the receipt: the 1.0.0 installer records `installer_version: 1.0.0`, while older receipts retain their original provenance. Updates use only the recorded provider and manifest source.
 
 `update --check` reports `current` or `update-available` without changing the tool. `update` refuses a downgrade and does not reinstall the same tool version. With `--install-skill`, it downloads the skill from the latest verified GitHub release and installs or refreshes it even when the tool is already current. Scope or target options imply `--install-skill`; `--check` cannot be combined with skill installation. A tool update verifies candidate assets and keeps the previous verified wheel, constraints, skill files, and receipt available for rollback if replacement fails. A missing, malformed, symlinked, or untrusted receipt is a trust error; Envman does not silently switch update channels.
 

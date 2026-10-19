@@ -12,7 +12,7 @@
 [![Latest release](https://img.shields.io/github/v/release/CruxExperts/envman?sort=semver)](https://github.com/CruxExperts/envman/releases/latest)
 [![MIT license](https://img.shields.io/github/license/CruxExperts/envman)](LICENSE)
 
-**Source version:** 0.1.12
+**Source version:** 1.0.0
 
 This is the version of this source checkout, not a publication claim. The
 **Latest release** badge above and [GitHub Releases](https://github.com/CruxExperts/envman/releases/latest)
@@ -132,9 +132,19 @@ The installer refuses symlink escapes and preserves an unmarked existing skill. 
 - [Inspect the release and update trust boundary](docs/reference/install-source-and-updates.md)
 - [Read the architecture](docs/development/architecture.md)
 - [Run the test suite](docs/development/testing.md)
+- [Review copyright and signing policy](docs/governance/repository-policy.md)
 
 ## Support and contributions
 
 Ask usage questions in [GitHub Discussions](https://github.com/CruxExperts/envman/discussions). Report reproducible defects in [GitHub Issues](https://github.com/CruxExperts/envman/issues). Suspected vulnerabilities belong in [private vulnerability reporting](https://github.com/CruxExperts/envman/security/advisories/new), never a public issue.
 
-Contributors should read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and the [Code of conduct](CODE_OF_CONDUCT.md). Envman source code is released under the [MIT License](LICENSE); original visual assets remain private and carry their own embedded notices.
+Contributors should read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and the [Code of conduct](CODE_OF_CONDUCT.md).
+
+## License and copyright
+
+Copyright (c) 2026 [Crux Experts LLC](https://www.cruxexperts.com/).
+Envman source code and documentation are released under the [MIT License](LICENSE).
+Original visual assets remain private and retain their own embedded rights
+notices; third-party notices remain unchanged. See the
+[repository policy](docs/governance/repository-policy.md) for ownership and
+verified RSA OpenPGP publication requirements.

@@ -82,6 +82,22 @@ missing, duplicate, and mismatched displays. Source skill links follow `main`;
 release asset checks verify that the distributed skill instead uses the
 version-specific documentation tag.
 
+### Publisher signature gate
+
+Verify a signed maintainer commit without changing the developer's keyring:
+
+```bash
+uv run --locked --no-sync python scripts/check_signatures.py \
+  --commit "$(git rev-parse HEAD)"
+```
+
+Add `--tag vX.Y.Z` to verify an annotated release tag for that exact commit.
+The committed public certificate and full primary fingerprint define the
+publisher; the release gate does not download trust keys or need private key
+material. Signing regressions use disposable Git repositories and RSA keys to
+exercise valid signatures and rejection of unsigned, wrong-signer, lightweight,
+and mismatched tags. They do not use or export the production private key.
+
 ## Reproducible release checks
 
 Before publishing, build the artifacts twice from the tagged commit timestamp and compare both outputs:

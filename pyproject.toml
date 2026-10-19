@@ -9,7 +9,7 @@ description = "Portable terminal environment-variable manager"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = { text = "MIT" }
-authors = [{ name = "CruxExperts contributors" }]
+authors = [{ name = "Crux Experts LLC" }]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console :: Curses",

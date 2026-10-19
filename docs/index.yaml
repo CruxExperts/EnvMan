@@ -89,6 +89,15 @@ documents:
     last_updated: "2026-10-19"
     doc_type: reference
     tags: [versioning, releases]
+  - id: governance-repository-policy
+    path: docs/governance/repository-policy.md
+    title: Repository ownership and publication policy
+    category_label: Governance
+    category_slug: governance
+    status: ACTIVE
+    last_updated: "2026-10-19"
+    doc_type: reference
+    tags: [copyright, licensing, signing, github]
   - id: governance-publishing
     path: docs/governance/publishing-checklist.md
     title: Historical v0.1.5 publishing checklist

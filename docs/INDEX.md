@@ -28,8 +28,14 @@ Read these guides directly on GitHub. The repository README and releases are the
 
 ## Governance
 
+- [Repository ownership and publication policy](governance/repository-policy.md) - ACTIVE `reference`; tags: `copyright`, `licensing`, `signing`, `github`; updated 2026-10-19.
+
 - [Historical v0.1.5 publishing checklist](governance/publishing-checklist.md) - ARCHIVED `checklist`; tags: `publishing`, `github`; updated 2026-10-19.
 
 ## Assets
 
 - [Visual assets and social preview](assets/README.md) - ACTIVE `reference`; tags: `branding`, `graphics`, `github`, `social-preview`; updated 2026-10-19.
+
+Copyright (c) 2026 [Crux Experts LLC](https://www.cruxexperts.com/).
+Documentation is released under the [MIT License](../LICENSE); separately
+restricted visual assets retain their own rights notices.

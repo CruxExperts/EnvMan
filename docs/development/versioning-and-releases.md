@@ -62,18 +62,28 @@ The highest explicit or default intent wins across the release batch. A `BREAKIN
 After updating `VERSION`, synchronizing the README source display, rendering the installer and agent skill, and moving the relevant `Unreleased` changelog entries into a versioned section, create a version-matching tag for the next release and push it only after the local checks pass:
 
 ```bash
-git tag -s vX.Y.Z -m "Release vX.Y.Z"
-git verify-tag vX.Y.Z
+git -c user.email=pgp@cruxexperts.com tag -s \
+  -u AF7968466B5B39C5E928FEFE716342D3EFBA5522 vX.Y.Z -m "Release vX.Y.Z"
+uv run --locked --no-sync python scripts/check_signatures.py \
+  --commit "$(git rev-parse HEAD)" --tag vX.Y.Z
 git push origin vX.Y.Z
 ```
 
-The release workflow runs only for tags matching `v[0-9]*`. Its source gate requires the tag name without `v` to equal `VERSION` and the tagged commit to be an ancestor of `origin/main`. It then runs locked tests, `version.py check`, the documentation-index check, installer rendering parity, and agent-skill rendering parity.
+The release workflow runs only for tags matching `v[0-9]*`. Before executing build steps, its signature gate verifies the exact source commit and annotated tag against the pinned Crux Experts LLC RSA OpenPGP certificate in an isolated public-only keyring. A lightweight, unsigned, wrong-signer, or mismatched tag fails closed. The source gate also requires the tag name without `v` to equal `VERSION` and the tagged commit to be an ancestor of `origin/main`. It then runs locked tests, `version.py check`, the documentation-index check, installer rendering parity, and agent-skill rendering parity.
 
 Publish the verified signed source commit to `main` before pushing the tag.
 Documentation is browsed directly on GitHub through the README and
 [`docs/INDEX.md`](../INDEX.md). GitHub Pages is disabled and has no deployment
 workflow. The optional local key service in v0.1.11 is experimental; release
 publication does not qualify an administrator's systemd, SSH, or reboot setup.
+
+The [repository policy](../governance/repository-policy.md) owns the copyright,
+signer fingerprint, and GitHub governance baseline. The tracked certificate is
+public verification material only. Private keys and passphrases stay outside
+the checkout and hosted workflow. Main-branch protection requires signed commits;
+the publisher gate additionally pins the company identity. Automatic pre-push
+version-sync commits are signed explicitly. This policy does not re-sign
+historical releases or imply a release is published by a normal branch push.
 
 ## Build, assets, and publication
 

@@ -3,7 +3,7 @@ name: envman-environment-variable-manager
 description: Manage Envman CLI and terminal UI workflows for durable environment variables, process or encrypted-backup imports, shell loaders, encrypted backups, verified GitHub installation or updates, and receipt behavior. Use for Envman commands, TUI controls, managed-variable safety, migration, or release updates; do not use for generic shell questions unrelated to Envman.
 ---
 
-<!-- envman-skill-lock: version=0.1.12 source=src/envman/cli.py -->
+<!-- envman-skill-lock: version=1.0.0 source=src/envman/cli.py -->
 
 # Envman
 

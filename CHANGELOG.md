@@ -4,6 +4,22 @@ All notable changes are documented here.
 
 ## Unreleased
 
+## [1.0.0] - 2026-10-19
+
+Promote Envman to 1.0.0 with consistent Crux Experts LLC ownership, verified
+RSA OpenPGP publication, and a real terminal walkthrough. The standard release
+installer retains Linux x86_64, CPython `>=3.12,<3.13`, and `uv >=0.11` support.
+Existing encrypted stores and receipt-directed updates remain supported.
+
+### Experimental feature boundary
+
+The optional local key service remains experimental and opt-in. Publishing
+1.0.0 does not qualify systemd startup, SSH sessions, reboot behavior, or VM
+startup performance on an isolated deployment. The file-key provider remains
+the default. Read the
+[local key-service guide](https://github.com/CruxExperts/envman/blob/v1.0.0/docs/guides/local-key-service.md)
+before deployment.
+
 ### Changed
 
 - Refine the bracket-equals identity with coordinated vector wordmarks, compact
@@ -14,6 +30,13 @@ All notable changes are documented here.
 - Replace drawn terminal previews with a real WezTerm screenshot and animated
   walkthrough of 48 demonstration variables, using a brand-matched terminal
   palette, lossless WebP, GIF fallback, and a reduced-motion still image.
+- Align source and documentation copyright and package identity with
+  Crux Experts LLC while retaining MIT terms and private artwork notices.
+- Record the shared repository ownership, documentation, and signing policy.
+- Require the publisher's RSA OpenPGP signature on release source commits and
+  annotated tags, and sign automatic version-sync commits explicitly.
+- Configure main-branch governance to require signed commits while preserving
+  deletion, force-push, and linear-history protections.
 
 ### Fixed
 

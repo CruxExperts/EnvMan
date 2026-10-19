@@ -15,3 +15,16 @@ Envman masks sensitive values in ordinary TUI and CLI output, but a caller that 
 ## Installation trust
 
 The verified installer checks release-manifest structure, GitHub asset URLs, sizes, SHA-256 hashes, wheel metadata, runtime constraints, and compatibility before installation. It still trusts the local `uv` executable and Python runtime, GitHub release hosting, and the dependency index used for exact runtime wheels. See [installation sources and updates](docs/reference/install-source-and-updates.md).
+
+## Signed source and releases
+
+Maintainer publication uses the Crux Experts LLC RSA OpenPGP primary key
+`AF7968466B5B39C5E928FEFE716342D3EFBA5522`. The
+[public certificate](.github/keys/cruxexperts.asc) is committed; private key
+material is never stored in the repository or required by hosted verification.
+The release gate verifies the exact source commit and annotated tag against
+that identity in an isolated public-only keyring before building. Existing
+asset hashes and GitHub build attestations protect separate integrity and
+provenance boundaries; they are not RSA signatures on each downloaded file.
+See [repository policy](docs/governance/repository-policy.md) and the
+[release guide](docs/development/versioning-and-releases.md).
