@@ -34,6 +34,21 @@
     {"source": "logo-dark.svg", "raster": "logo-dark.png", "dimensions": [1120, 256], "placement": "Dark backgrounds"},
     {"source": "favicon.svg", "raster": "favicon.png", "dimensions": [64, 64], "placement": "Small application icon"}
   ],
-  "preserved_product_illustrations": ["terminal-preview.svg", "terminal-preview-mobile.svg"],
+  "product_recording": {
+    "method": "Native window screenshots of the running Envman application in WezTerm; not generated or reconstructed",
+    "app_version": "0.1.12",
+    "dimensions": [1368, 958],
+    "duration_ms": 31370,
+    "encoded_frames": 65,
+    "demonstration_variables": 48,
+    "data_source": "demo-variables.json",
+    "terminal_theme": "wezterm-demo.lua",
+    "still": "terminal-preview.png",
+    "animated_webp": "terminal-walkthrough.webp",
+    "animated_gif": "terminal-walkthrough.gif",
+    "scenes": ["browse the catalog", "select multiple entries", "filter DATABASE settings", "edit and save DATABASE_USER", "filter FEATURE flags", "clear the filter and scroll the full catalog"],
+    "processing": "Native captured pixels retained; frame timing paced for readability; PNG and WebP are lossless; GIF uses a shared indexed palette",
+    "cursor": "Actual keyboard selection and text-entry cursor; no simulated mouse pointer"
+  },
   "archive": "envman-brand-assets-v1.0.0.zip"
 }

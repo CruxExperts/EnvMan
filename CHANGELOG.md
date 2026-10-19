@@ -11,6 +11,9 @@ All notable changes are documented here.
 - Add reproducible, ownership-tagged image exports and a versioned brand asset pack.
 - Use the same artwork for the desktop README hero and GitHub social preview,
   with a matching square composition on narrow screens.
+- Replace drawn terminal previews with a real WezTerm screenshot and animated
+  walkthrough of 48 demonstration variables, using a brand-matched terminal
+  palette, lossless WebP, GIF fallback, and a reduced-motion still image.
 
 ## [0.1.11] - 2026-10-19
 

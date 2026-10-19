@@ -257,7 +257,14 @@ def package_assets() -> Path:
     output = ASSETS / "envman-brand-assets-v1.0.0.zip"
     paths = [ASSETS / "README.md", ASSETS / "asset-manifest.json", ASSETS / "brand-artwork.webp"]
     paths += [ASSETS / f"{name}.{suffix}" for name in EXPORTS for suffix in ("svg", "png")]
-    paths += [ASSETS / "terminal-preview.svg", ASSETS / "terminal-preview-mobile.svg", Path(__file__)]
+    paths += [
+        ASSETS / "terminal-preview.png",
+        ASSETS / "terminal-walkthrough.webp",
+        ASSETS / "terminal-walkthrough.gif",
+        ASSETS / "demo-variables.json",
+        ASSETS / "wezterm-demo.lua",
+        Path(__file__),
+    ]
     with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         archive.comment = f"{COPYRIGHT}. {SOURCE_URL} {ASSET_RIGHTS}".encode("utf-8")
         for path in paths:

@@ -36,11 +36,12 @@ envman
 A new store starts empty. Press `A` to add a variable. Press `Q` or `Esc` to leave the catalog and start a child shell with the managed environment.
 
 <picture>
-  <source media="(max-width: 720px)" srcset="docs/assets/terminal-preview-mobile.svg">
-  <img src="docs/assets/terminal-preview.svg" width="1120" alt="Synthetic Envman terminal catalog with a selected project path, sample service URL, masked API token, focus details, and keyboard controls">
+  <source media="(prefers-reduced-motion: reduce)" srcset="docs/assets/terminal-preview.png">
+  <source type="image/webp" srcset="docs/assets/terminal-walkthrough.webp">
+  <img src="docs/assets/terminal-walkthrough.gif" width="1120" alt="Real Envman session in WezTerm: browse 48 demonstration variables, select entries, filter database settings, and save an edited value">
 </picture>
 
-The preview uses sample values only. Sensitive values stay masked in ordinary output.
+Recorded from the actual app in WezTerm with 48 realistic demonstration variables and a brand-matched terminal palette. The interface is not generated or reconstructed. Credentials are fake and remain masked. [Open the full-size walkthrough](docs/assets/terminal-walkthrough.webp) or [view the still screenshot](docs/assets/terminal-preview.png).
 
 ## A small set of useful guarantees
 

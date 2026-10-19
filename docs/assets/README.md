@@ -23,6 +23,9 @@ product promise is **Your environment, in order.**
 | Dark-background wordmark | [logo-dark.svg](logo-dark.svg), [PNG](logo-dark.png) | Vector; 1120 × 256 |
 | Small application icon | [favicon.svg](favicon.svg), [PNG](favicon.png) | Vector; 64 × 64 |
 | Generated campaign artwork master | [brand-artwork.webp](brand-artwork.webp) | 1536 × 1024 |
+| Real product screenshot and reduced-motion fallback | [terminal-preview.png](terminal-preview.png) | 1368 × 958 |
+| Real usage walkthrough, lossless animation | [terminal-walkthrough.webp](terminal-walkthrough.webp) | 1368 × 958; 31.37 seconds |
+| Animated fallback | [terminal-walkthrough.gif](terminal-walkthrough.gif) | 1368 × 958; 31.37 seconds |
 | Reusable asset collection | [envman-brand-assets-v1.0.0.zip](envman-brand-assets-v1.0.0.zip) | Sources, exports, manifest, renderer |
 
 Use the flat mark rather than the sculpted artwork below 128 pixels. Keep clear
@@ -32,9 +35,10 @@ uses the owner account avatar; there is no separate repository-avatar setting.
 The application mark is supplied for project-specific placements, not as a
 replacement for the organization's account avatar.
 
-`terminal-preview.svg` and `terminal-preview-mobile.svg` remain synthetic product
-illustrations, not photographs or screenshots of a live user session. Their
-sample state is independent of the campaign artwork.
+The product screenshot and walkthrough are native captures of the actual Envman
+0.1.12 interface running in WezTerm. Only the 48 demonstration variables are
+synthetic; the interface, selection cursor, text entry, masking, and saved edit
+are real. There is no generated interface or simulated mouse pointer.
 
 The desktop README hero deliberately uses the exact social-preview PNG, not a
 separately generated logo or illustration. The narrow README uses the square
@@ -64,11 +68,43 @@ python3 scripts/render_visual_assets.py
 
 Change layout, colors, typography, or mark geometry in the renderer, not in its
 generated SVGs. Change the campaign master only when intentionally revising the
-art direction. The independent terminal illustrations remain editable SVGs.
+art direction. Product screenshots and animations must be recorded from the
+running application, not drawn or reconstructed by the brand renderer.
 PNG exports carry title, creator, source, copyright and rights fields, plus XMP.
 SVG and WebP sources carry the corresponding ownership metadata. The manifest
 records the generation prompt and provenance; generation does not establish
 trademark clearance.
+
+## Recording the real interface
+
+The walkthrough browses a 48-variable store, builds selections, filters
+`DATABASE` settings, edits `DATABASE_USER` from `app_reader` to `app_service`,
+filters `FEATURE` flags, and returns to the full catalog. The keyboard selection
+and text-entry cursors move in the actual application.
+
+[demo-variables.json](demo-variables.json) contains the fictitious starting
+dataset. All service domains use reserved `.test` names, and credential-shaped
+values are explicitly nonfunctional placeholders. Always create a disposable
+home directory and set `HOME`, `XDG_CONFIG_HOME`, and `XDG_STATE_HOME` for both
+seeding and launching. Import only the fixture's named variables through
+`envman import NAME... --apply`; do not import the operator's process environment.
+
+Launch a separate WezTerm process with
+`wezterm --config-file docs/assets/wezterm-demo.lua start --always-new-process`.
+Pass the isolated demo environment to its child command. The
+[demo configuration](wezterm-demo.lua) matches the artwork's deep ink, mineral
+teal, pale mint, and yellow-green accents without changing the user's normal
+WezTerm configuration. Agent-driven capture must use an isolated display or a
+freshly verified built-in laptop display, never the operator's external screen.
+
+Capture only that window. Preserve its pixels and encode the sequence as
+lossless animated WebP, with a shared-palette GIF fallback. Frame holds may be
+paced for readability; do not fabricate UI transitions, redraw text, reveal
+credentials, or add a simulated pointer. The current exports contain 65 distinct
+frames. The README prefers WebP, falls back to GIF, and uses the real PNG when
+reduced motion is requested. Brand re-rendering packages these recordings but
+does not recreate or overwrite them.
+
 
 ## GitHub social preview
 
