@@ -23,6 +23,44 @@ Do not replace `--locked --no-sync` with an unconstrained environment when check
 
 ## Focused source checks
 
+### Local key service
+
+Run synthetic protocol, provisioning, and mapped-namespace tests with:
+
+```bash
+uv run --locked --no-sync python -m unittest discover -s tests -p 'test_key_service*.py' -v
+```
+
+The namespace test uses `unshare --user --map-auto --map-root-user --mount`
+and a disposable chroot. It runs the daemon as UID 1, a client as UID 2, and
+enrolls distinct synthetic stores for UIDs 2 and 3. It exercises real
+`SO_PEERCRED`, production root-owned configuration/path validation, private
+service-owned records, and the daemon's inherited-descriptor checks. No
+endpoint trust or account checks are mocked in that test. The listener and
+`LISTEN_PID`/`LISTEN_FDS` environment simulate systemd activation; this is not
+evidence of an actual systemd deployment. It skips with a reason when mapped
+namespaces are unavailable. Other unit fixtures explicitly inject account,
+administrator, or endpoint trust and must not be described as cross-UID proof.
+
+The bundle test verifies complete runtime packaging and recorded hashes without
+installing anything. Provider migration and retained-runtime tests use temporary
+homes and synthetic keys, including independent export restoration without the
+service. No tests modify the operator's login files, enroll this machine, or
+use real secrets. Desktop, SSH public-key sessions, unattended loading after
+reboot, and cold/warm startup measurements on an isolated VM remain pre-release
+deployment acceptance work; those platform results have not been established.
+
+Local acceptance on 2026-10-19 passed the locked full suite: 190 tests, with
+one optional Fish test skipped because Fish was unavailable. Source compilation,
+documentation/index checks, version checks, skill and installer parity, wheel
+and source-archive builds, and release-asset projections passed. Package
+inspection confirmed the shared provider, service, and migration modules and
+the source provisioning builder are included. Builds used a clean candidate
+tree containing task-owned changes, excluding unrelated untracked skill
+projections. Dependencies and runtime constraint pins were unchanged.
+
+### Generated sources and documentation
+
 Use these local source-integrity checks before opening a release tag. The release workflow runs the version, documentation, and installer-parity checks from this list after its locked test command:
 
 ```bash

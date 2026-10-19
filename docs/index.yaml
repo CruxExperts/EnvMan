@@ -23,7 +23,7 @@ documents:
     category_label: Guides
     category_slug: guides
     status: ACTIVE
-    last_updated: "2026-09-24"
+    last_updated: "2026-10-19"
     doc_type: reference
     tags: [cli, automation, json]
   - id: guide-backups
@@ -32,16 +32,25 @@ documents:
     category_label: Guides
     category_slug: guides
     status: ACTIVE
-    last_updated: "2026-09-24"
+    last_updated: "2026-10-19"
     doc_type: guide
     tags: [backups, encryption, migration]
+  - id: guide-key-service
+    path: docs/guides/local-key-service.md
+    title: Local storage key service
+    category_label: Guides
+    category_slug: guides
+    status: ACTIVE
+    last_updated: "2026-10-19"
+    doc_type: guide
+    tags: [storage, encryption, provisioning]
   - id: reference-storage
     path: docs/reference/storage-and-shell-loading.md
     title: Storage and shell loading
     category_label: Reference
     category_slug: reference
     status: ACTIVE
-    last_updated: "2026-09-24"
+    last_updated: "2026-10-19"
     doc_type: reference
     tags: [storage, shells]
   - id: reference-install
@@ -68,7 +77,7 @@ documents:
     category_label: Development
     category_slug: development
     status: ACTIVE
-    last_updated: "2026-07-20"
+    last_updated: "2026-10-19"
     doc_type: how_to
     tags: [testing, unittest]
   - id: development-versioning

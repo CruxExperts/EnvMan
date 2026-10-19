@@ -10,10 +10,12 @@ import json
 import tarfile
 import tempfile
 import unittest
+import uuid
 from pathlib import Path
 from unittest import mock
 
 from envman import cli as envman
+from envman._key_provider import write_provider
 
 
 class IsolatedEnvmanTestCase(unittest.TestCase):
@@ -1273,6 +1275,24 @@ class EnvmanPersistenceTests(IsolatedEnvmanTestCase):
             current = envman.EnvironmentStore(home, home / ".config")
             current.load()
             self.assertEqual(current.values, {"PUBLIC_VALUE": "first update"})
+
+    def test_stale_environment_store_cannot_write_after_provider_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            home = Path(temporary_directory) / "home"
+            home.mkdir()
+            first = envman.EnvironmentStore(home, home / ".config")
+            first.values = {"PUBLIC_VALUE": "before"}
+            first.save()
+            second = envman.EnvironmentStore(home, home / ".config")
+            second.load()
+            before = second.target.read_bytes()
+
+            write_provider(second.config_home, "service", str(uuid.uuid4()))
+            second.values["PUBLIC_VALUE"] = "stale update"
+            with self.assertRaisesRegex(envman.StoreError, "provider changed since it was loaded"):
+                second.write_values()
+
+            self.assertEqual(second.target.read_bytes(), before)
 
     def test_check_reports_historical_plaintext_environment_snapshots(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:

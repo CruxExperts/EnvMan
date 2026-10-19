@@ -34,11 +34,17 @@ TUI for interactive inspection and editing.
 ## Safety invariants
 
 - Treat the managed configuration and process environment as sensitive. New
-  saves encrypt the configuration with a separate private file key. A copy of
+  saves encrypt the configuration; the default provider uses a separate private file key. A copy of
   both the key and ciphertext, or an unlocked process environment, exposes values.
   Protect their directories and permissions; check for legacy plaintext snapshots.
 - Keep sensitive values masked. Request `--reveal` only for a secure, intentional
   caller, and never paste values into logs, source control, or prompts.
+- Optional local key-service mode separates keys from copied homes. Provisioning,
+  administrator enrollment, migration activation, file-key cleanup, and service
+  retirement are explicit operations; ordinary installation authorizes none of
+  them. Never fall back or create a new key after selected-service lookup fails.
+  The service does not protect against code acting as the enrolled UID, root,
+  service-account compromise, hypervisor access, or a complete VM snapshot.
 - Preview imports before applying. `--apply` is required to persist changes;
   `--replace` is required for intentional managed-name collisions. `--force` and
   `--yes` suppress advisory warnings only and never bypass validation.
@@ -180,6 +186,16 @@ Migration encrypts the active store and historical environment snapshots while
 preserving profile snapshots. It cannot remove copies held by external backups,
 filesystem snapshots, or storage remnants. Keep the storage key separate from
 copies of the encrypted store.
+
+For optional local key isolation, first use `migrate-storage --provider service`
+to preview, then `--prepare --apply` to print the separate administrator
+enrollment command. Activation requires `--apply --recovery-export PATH
+--remove-file-key` and explicit `ENVMAN_BACKUP_KEY`; it never uses the home backup
+key fallback. Returning to `--provider file` requires an explicit recovery
+export and leaves service retirement as a separate administrator action. Read
+the [local key-service guide](https://github.com/CruxExperts/envman/blob/v0.1.10/docs/guides/local-key-service.md)
+before deployment. Review `check` for pending cleanup and plaintext snapshots;
+exports copied together with `encryption.key` remain exposed to home copies.
 
 ## TUI
 

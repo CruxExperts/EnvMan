@@ -71,7 +71,7 @@ unknown versions, damaged ciphertext, unsafe paths, and incorrect keys fail
 closed. Fernet still exposes creation time and approximate payload size. See the
 [Fernet documentation](https://cryptography.io/en/latest/fernet/).
 
-The first save creates a random storage key in
+In the default file provider, the first save creates a random storage key in
 `${XDG_STATE_HOME:-$HOME/.local/state}/envman/storage.key`. The key file is
 private, owned by the user, and separate from the managed configuration and
 its automatic snapshots. It is not the `ENVMAN_BACKUP_KEY` credential. The file
@@ -103,7 +103,7 @@ key or invalid file produces no managed assignments. Existing values inherited
 from the parent process are outside this guarantee.
 
 The retained runtime includes its own copy of the decryptor, `cryptography`,
-its CFFI backend, and supporting packages with their license metadata. It remains
+its CFFI backend, supporting packages with their license metadata, and the shared key-provider/client modules. It remains
 in the private configuration directory when the Envman tool is uninstalled. It requires the
 Python interpreter named in the generated loader; removing that interpreter or
 the retained runtime stops new shell loading. Installing a new loader runtime
@@ -130,111 +130,63 @@ on a clean home before relying on the storage key alone. Values necessarily
 become plaintext in process memory and the process environment when loaded;
 root or a process acting as the unlocked user can retrieve them.
 
-## Proposed hardware-independent key isolation
+## Hardware-independent key isolation
 
-**Status: PROPOSAL, 2026-10-19. Not implemented.** The requirement is automatic
-loading on ordinary Linux desktops, VPS hosts, and virtual machines, including
-SSH and unattended jobs after reboot. No TPM, desktop login, recurring password,
-or network service should be required. One-time administrator provisioning is
-the deployment cost of the stronger local mode; installations without that
-authority retain the current file-key mode and its stated protection boundary.
+**Status: implemented, pending isolated deployment acceptance, 2026-10-19.**
+The optional Linux local key service implements the proposal recorded in commit
+`43d26f2`. The default file provider and authenticated document format remain
+compatible. The [deployment and migration guide](../guides/local-key-service.md)
+owns provisioning, enrollment, cleanup, retirement, and recovery instructions.
 
-### Recommended boundary
+`_key_provider.py` is the shared provider-selection owner for the store,
+snapshot-migration caller, and retained decryptor. Missing metadata means file
+mode; explicit service metadata contains a random store ID. Endpoint trust is
+read from administrator-owned system configuration, never user metadata or
+environment variables. Service failures do not create keys, persist a cache,
+or fall back to the file provider.
 
-Keep the current authenticated encrypted configuration. Move its random storage
-key out of the user's home and into a small local key service running under a
-dedicated non-login service account. Its key directory is mode `0700`, with
-mode-`0600` per-user key records, under an administrator-provisioned system state
-directory such as `/var/lib/envman-keys`. The daemon needs no root privileges,
-network listener, shell execution, or access to users' configuration files.
-Administrator-owned service code and configuration must not import executable
-code from an enrolled user's checkout or tool environment.
+`_key_service.py` implements a bounded, retrieval-only Unix stream protocol and
+separate root-only enrollment/retirement operations. Kernel `SO_PEERCRED`
+supplies the client UID; the request contains only the protocol version and
+store ID. Records bind UID, store ID, and the enrolled passwd identity.
+Enrollment reconciles an identical live key, rejects replacement, and retirement
+permanently tombstones the old pair. Identical account recreation cannot be
+identified from Linux peer credentials alone: administrators must retire before
+UID reuse. See [Linux Unix sockets](https://man7.org/linux/man-pages/man7/unix.7.html).
 
-Envman and the retained shell loader request the enrolled user's existing key
-over a local Unix stream socket, decrypt in memory, and load variables as today.
-Use kernel-provided `SO_PEERCRED` credentials to authorize the connected user;
-never trust a username, UID, path, or environment variable supplied in a request.
-The [Linux Unix socket documentation](https://man7.org/linux/man-pages/man7/unix.7.html)
-describes this peer-identity mechanism. A request cannot select another user's
-key. Scope each key to the authenticated UID and a random store identifier so
-separate XDG stores remain independent; the identifier is not a credential.
-Administrator enrollment and retirement own the UID-to-key associations;
-UID reuse requires retirement and fresh enrollment, not inherited access.
+A dedicated non-login, non-root service account owns private key records outside
+homes. Root owns executable code, configuration, and the socket directory.
+Clients verify both the protected path and the server peer. The systemd socket
+activation case explicitly permits the root listener creator, while the daemon
+validates the inherited descriptor's process association, count, type, listening
+state, and bound path. No setuid program, passwordless sudo, user-writable service
+runtime, desktop unlock, hardware device, or network service is required.
 
-Use a socket path under an administrator-controlled directory and verify the
-server identity as well as the client identity. Bound request sizes, connection
-counts, and timeouts; close connections after each request. Do not log keys,
-place them in arguments or environment variables, or persist a client key cache.
-Disable service core dumps and restrict its filesystem access. Memory and swap
-handling still need evaluation; Python cannot promise reliable key zeroization.
-Use systemd socket activation where available; other supported supervisors must
-provide the same ownership and reboot behavior. Do not add a setuid helper or
-passwordless sudo invocation to shell startup.
-Server verification must account for socket activation: peer credentials for a
-supervisor-created listener need not identify the eventual service account.
+Provider migration holds the store lock through revalidation and activation.
+It preserves the data key, verifies independent export recovery, service
+retrieval and active/historical snapshot decryption, installs compatible
+retained loaders, then atomically activates metadata. File-key removal happens
+last and incomplete cleanup remains visible. A secret-free pending record
+makes interruptions reconcilable. Both provider identity and the document
+fingerprint participate in stale-writer detection. Returning to file mode and
+retiring a service record are separate explicit operations.
 
-This improves protection against a copied user home, dotfile synchronization,
-and accidental exposure of the configuration and user-state directories together.
-It does **not** stop arbitrary code running as the enrolled user from requesting
-the same key. It does not protect against root, service-account compromise,
-hypervisor access, or a complete VM/disk snapshot containing the system keys.
-It also does not revoke variables already inherited by running processes.
-The benefit is separation of file access and backup boundaries, not isolation
-from the user who is deliberately authorized to load every variable.
+The retained runtime copies and hashes the shared provider and its service
+client dependencies alongside the decryptor and crypto runtime. It works after
+CLI removal while its interpreter, runtime, and selected service remain
+available; it writes no decrypted cache and emits no partial assignment stream.
 
-For full-VM-copy protection, a separate design must keep an unlocking secret
-outside the VM, through external key custody or operator input. External custody
-also needs a non-clonable or externally controlled authorization mechanism;
-moving the key behind an API while leaving a reusable token in the same snapshot
-does not solve that problem. That requirement introduces an external trust and
-availability dependency and is outside this local, offline proposal.
+The protection boundary is passive home/configuration copying after cleanup.
+It excludes malicious code acting as the enrolled user, root, service-account
+compromise, hypervisor access, and full VM snapshots containing system keys.
+Old plaintext snapshots and exports copied with their backup credential are
+alternate exposures; migration cannot erase external copies. Python cannot
+promise key zeroization. Independent encrypted recovery remains necessary.
 
-### Integration and migration
-
-Add a shared storage-key resolver used by `EnvironmentStore`, snapshot migration,
-and the retained decryptor. Persist explicit provider selection; absent metadata
-continues to mean the existing file provider. An unavailable selected service
-must fail promptly without emitting partial assignments, generating a replacement
-key, or silently reverting to the old file. Interactive shells remain usable;
-automation must receive an actionable nonzero result rather than continue on an
-assumption that secrets loaded. Existing inherited values remain outside that
-guarantee.
-
-Enrollment must transfer the same data key so historical encrypted snapshots
-remain readable. Extend the existing preview/apply migration workflow: lock and
-revalidate the store and provider, securely enroll the key, verify retrieval and
-decryption, install compatible retained loaders, and atomically activate the
-provider. Remove the original file key only after verification and activation;
-until cleanup succeeds, report the migration as incomplete. Make interrupted
-steps reconcilable without silently replacing either key. Provider changes must
-participate in stale-writer detection alongside the document fingerprint.
-
-Before retiring the file key, verify an independent encrypted export and its
-separately retrievable recovery credential. Test restoration without the key
-service on an isolated home. Old external copies of the original key remain
-sensitive. Check alternate exposure paths too: an encrypted export copied with
-its fallback `encryption.key`, or an old plaintext snapshot, defeats the intended
-home-copy protection. The retained runtime must include the shared socket client and keep
-working after CLI removal; removing the service is a separate operation requiring
-an explicit migration or recovery plan. No host enrollment or key migration is
-authorized merely by this proposal.
-
-### Acceptance before implementation is released
-
-- Prove ordinary desktop, SSH public-key login, and unattended loading after
-  reboot without a desktop session, prompt, hardware dependency, or network.
-- Prove one enrolled UID cannot retrieve another UID's key; reject forged
-  request identities, untrusted endpoints, malformed messages, and unknown users.
-  Verify separate stores for one UID and failure to decrypt a home-only copy
-  without access to its original key service.
-- Prove bounded failure when the service is unavailable and no partial exports,
-  disk key cache, plaintext fallback, or secret-bearing diagnostic output.
-- Exercise interrupted enrollment, concurrent writes/provider changes, old
-  snapshot decryption, recovery export restoration, and retained loading after
-  CLI removal. Review daemon isolation and endpoint authentication separately.
-- Measure cold and warm shell startup overhead on a modest VM before choosing
-  a timeout or claiming that the experience is friction-free.
-
-The next implementation step is an isolated service/client prototype with
-synthetic keys. Existing stores and host services must remain untouched until
-the protocol and failure behavior pass those checks.
+The first synthetic socket prototype was accepted before application integration.
+Focused adversarial, migration, recovery, and retained-runtime tests use synthetic
+keys. Real credential tests and fixture-injected trust are distinguished in the
+[testing reference](testing.md). Production systemd deployment, desktop and SSH
+sessions, unattended reboot behavior, and isolated-VM startup measurements remain
+separate acceptance evidence; implementation does not claim those untested
+platform results.

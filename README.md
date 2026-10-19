@@ -71,7 +71,7 @@ Use `--stdin` for values that should not appear in shell history. Use `envman --
 
 Envman stores assignments under `${XDG_CONFIG_HOME:-$HOME/.config}/envman/`. The first save creates a separate random storage key under `${XDG_STATE_HOME:-$HOME/.local/state}/envman/storage.key` and encrypts the managed configuration. Automatic environment snapshots created after that save contain ciphertext.
 
-Anyone who obtains both the storage key and encrypted file can recover the values. An unlocked user or root can also read values from the running environment. The [storage and shell-loading reference](docs/reference/storage-and-shell-loading.md) documents the full boundary and plaintext-snapshot migration.
+Anyone who obtains both the storage key and encrypted file can recover the values. The optional [local key service](docs/guides/local-key-service.md) separates keys from user homes through one-time administrator provisioning and explicit migration. Code acting as the enrolled user, root, service-account compromise, hypervisor access, and full VM snapshots remain outside its protection. The [storage and shell-loading reference](docs/reference/storage-and-shell-loading.md) documents the full boundary and plaintext-snapshot migration.
 
 Encrypted backup files use `ENVMAN_BACKUP_KEY` when it is configured. Otherwise Envman can use a private fallback key, but only after explicit approval:
 

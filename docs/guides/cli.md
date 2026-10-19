@@ -49,6 +49,16 @@ Imports preserve the process value bytes. URL names are checked for valid URL sy
 
 When `ENVMAN_BACKUP_KEY` is explicitly configured, encrypted backups use it. If it is unset, Envman may use the private mode-`0600` fallback at `${XDG_CONFIG_HOME:-$HOME/.config}/envman/encryption.key`. This backup credential is separate from the storage key at `${XDG_STATE_HOME:-$HOME/.local/state}/envman/storage.key`; the managed `environment.conf` is encrypted after the first save. `migrate-storage` previews older plaintext environment snapshots; `migrate-storage --apply` encrypts them after preserving a recovery export.
 
+For the optional local key service, `migrate-storage --provider service` previews
+the transition and `--prepare --apply` prepares a stable enrollment ID and prints
+the separate administrator command. Activation requires `--apply`,
+`--recovery-export PATH`, `--remove-file-key`, and an explicitly supplied
+`ENVMAN_BACKUP_KEY`. `--provider file --apply --recovery-export PATH` explicitly
+returns to file mode; JSON output includes a separate administrator retirement
+command. Provider-only flags require `--provider`. See the
+[local key-service guide](local-key-service.md) for provisioning, interruption
+reconciliation, independent recovery, and the UID retirement boundary.
+
 For automation or AI agents, key generation requires the dedicated explicit command:
 
 ```bash

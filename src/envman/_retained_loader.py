@@ -41,8 +41,12 @@ def _installed_main() -> int:
         SecureStoreError,
         decrypt_document,
         is_encrypted_document,
-        load_or_create_file_key,
         safe_read,
+    )
+    from _key_provider import (  # type: ignore[import-not-found]
+        StorageKeyProviderError,
+        read_provider,
+        resolve_storage_key,
     )
 
     try:
@@ -53,10 +57,13 @@ def _installed_main() -> int:
         if not data_path.exists() and not data_path.is_symlink():
             return 0
         encrypted = safe_read(data_path, MAX_DOCUMENT_BYTES)
+        provider = read_provider(config_home)
         if is_encrypted_document(encrypted):
-            key = load_or_create_file_key(state_home / "envman" / "storage.key", create=False)
+            key = resolve_storage_key(config_home, state_home)
             plaintext = decrypt_document(encrypted, key)
         else:
+            if provider.provider != "file":
+                raise ValueError("plaintext storage with the selected provider")
             key_path = state_home / "envman" / "storage.key"
             if key_path.exists() or key_path.is_symlink():
                 raise ValueError("plaintext storage with an existing key")
@@ -79,7 +86,7 @@ def _installed_main() -> int:
             assignments.append((line + "\n").encode("utf-8"))
         sys.stdout.buffer.write((b"ENVMAN-OK\n" if shell_protocol else b"") + b"".join(assignments))
         return 0
-    except (OSError, UnicodeError, ValueError, SecureStoreError):
+    except (OSError, UnicodeError, ValueError, SecureStoreError, StorageKeyProviderError):
         print("envman: could not unlock or validate managed environment", file=sys.stderr)
         return 1
 
@@ -102,6 +109,8 @@ def install_retained_runtime(utility_dir: Path) -> Path:
         raise OSError(f"Unsafe retained loader directory: {utility_dir}")
     source_loader = Path(__file__)
     source_store = source_loader.with_name("_secure_store.py")
+    source_provider = source_loader.with_name("_key_provider.py")
+    source_service = source_loader.with_name("_key_service.py")
     source_crypto = Path(cryptography.__file__).parent
     site_packages = source_crypto.parent
     packages = (
@@ -121,6 +130,8 @@ def install_retained_runtime(utility_dir: Path) -> Path:
     release = hashlib.sha256(
         source_loader.read_bytes()
         + source_store.read_bytes()
+        + source_provider.read_bytes()
+        + source_service.read_bytes()
         + "|".join(version for _, _, version in packages).encode("ascii")
     ).hexdigest()[:20]
     destination = utility_dir / f"loader-runtime-{release}"
@@ -133,6 +144,8 @@ def install_retained_runtime(utility_dir: Path) -> Path:
         for name in (
             "_retained_loader.py",
             "_secure_store.py",
+            "_key_provider.py",
+            "_key_service.py",
             "cryptography/__init__.py",
             "cffi/__init__.py",
             "pycparser/__init__.py",
@@ -146,6 +159,8 @@ def install_retained_runtime(utility_dir: Path) -> Path:
     try:
         shutil.copyfile(source_loader, temporary / "_retained_loader.py", follow_symlinks=False)
         shutil.copyfile(source_store, temporary / "_secure_store.py", follow_symlinks=False)
+        shutil.copyfile(source_provider, temporary / "_key_provider.py", follow_symlinks=False)
+        shutil.copyfile(source_service, temporary / "_key_service.py", follow_symlinks=False)
         for name, package, _ in packages:
             shutil.copytree(
                 package,

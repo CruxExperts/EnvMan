@@ -44,6 +44,14 @@ envman check
 
 The conversion verifies each replacement archive, preserves its filename, and does not touch profile snapshots. It cannot erase external backups, filesystem snapshots, or SSD remnants. Keep the storage key separate from copies of the encrypted configuration. The portable export uses its own backup credential, which you need to restore onto another machine.
 
+For optional hardware-independent separation of keys from user homes, use the
+[local key-service guide](local-key-service.md). Its provider migration preserves
+the data key, verifies current and historical ciphertext and an independent
+recovery export, and activates the service before explicit file-key cleanup.
+An encrypted export copied together with its `encryption.key` fallback remains
+exposed in a copied home. Keep recovery credentials independently retrievable,
+test restoration without the service, and review historical plaintext copies.
+
 For migration between machines:
 
 1. On the source machine, configure `ENVMAN_BACKUP_KEY` without placing it in a file or command history, or use the approved fallback key, then run `envman export` or use **B** in the TUI.

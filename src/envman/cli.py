@@ -21,7 +21,7 @@ import io
 from importlib.metadata import PackageNotFoundError, version as distribution_version
 import tempfile
 import tarfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, NoReturn
@@ -32,6 +32,31 @@ from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from ._retained_loader import install_retained_runtime
 from ._snapshot_migration import inspect_legacy_snapshots, migrate_legacy_snapshots
+from ._key_provider import (
+    ProviderSelection,
+    StorageKeyProviderError,
+    provider_fingerprint,
+    read_provider,
+    resolve_storage_key,
+    write_provider,
+)
+from ._key_service import KeyServiceClient, KeyServiceError
+from ._provider_migration import (
+    MigrationProgress,
+    ProviderMigrationError,
+    attach_recovery_export,
+    environment_store_lock,
+    install_file_key_if_missing,
+    key_fingerprint,
+    new_file_progress,
+    new_service_progress,
+    read_migration_progress,
+    remove_file_key,
+    remove_migration_progress,
+    revalidate_loaded_store,
+    verify_encrypted_snapshots,
+    write_migration_progress,
+)
 from ._secure_store import (
     MAX_ENVELOPE_BYTES,
     SecureStoreError,
@@ -504,11 +529,16 @@ def write_encrypted_backup(
     values: dict[str, str],
     *,
     key_path: Path | None = None,
+    exclusive: bool = False,
 ) -> dict[str, Any]:
+    if type(exclusive) is not bool:
+        raise StoreError("Encrypted-backup exclusive flag is invalid.")
     if destination.exists() and destination.is_dir():
         raise StoreError(f"Backup destination is a directory: {destination}")
     if destination.is_symlink():
         raise StoreError(f"Refusing to write encrypted backup through a symlink: {destination}")
+    if exclusive and destination.exists():
+        raise StoreError(f"Refusing to overwrite existing recovery export: {destination}")
     try:
         destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         if destination.parent.is_symlink():
@@ -527,9 +557,26 @@ def write_encrypted_backup(
                 temporary_path = Path(handle.name)
                 json.dump(envelope, handle, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
                 handle.write("\n")
+                handle.flush()
+                os.fsync(handle.fileno())
             os.chmod(temporary_path, 0o600)
-            temporary_path.replace(destination)
-        except OSError:
+            if exclusive:
+                try:
+                    os.link(temporary_path, destination, follow_symlinks=False)
+                except FileExistsError:
+                    raise StoreError(f"Refusing to overwrite existing recovery export: {destination}") from None
+                temporary_path.unlink()
+                directory_descriptor = os.open(
+                    destination.parent,
+                    os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0),
+                )
+                try:
+                    os.fsync(directory_descriptor)
+                finally:
+                    os.close(directory_descriptor)
+            else:
+                temporary_path.replace(destination)
+        except (OSError, StoreError):
             if temporary_path is not None:
                 temporary_path.unlink(missing_ok=True)
             raise
@@ -1004,11 +1051,13 @@ class StoreError(Exception):
 class EnvironmentStore:
     home: Path
     config_home: Path
+    _service_client: KeyServiceClient | None = field(default=None, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         self.utility_dir = self.config_home / "envman"
         self.encryption_key_path: Path = self.utility_dir / KEY_FILE_NAME
-        self.storage_key_path: Path = state_home(self.home) / "envman" / "storage.key"
+        self.state_dir = state_home(self.home)
+        self.storage_key_path: Path = self.state_dir / "envman" / "storage.key"
         self.target = self.utility_dir / "environment.conf"
         self.write_lock = self.utility_dir / ".environment.lock"
         self.backup_dir = self.utility_dir / "backups"
@@ -1018,6 +1067,7 @@ class EnvironmentStore:
         self.values: dict[str, str] = {}
         self.original_keys: set[str] = set()
         self._loaded_fingerprint: bytes | None = None
+        self._loaded_provider_fingerprint: str | None = None
         self._has_loaded_state = False
         self._loaded_encrypted = False
 
@@ -1034,27 +1084,68 @@ class EnvironmentStore:
         self.values = {}
         self.original_keys = set()
         self._loaded_fingerprint = None
+        self._loaded_provider_fingerprint = None
         self._has_loaded_state = True
         self._loaded_encrypted = False
+        try:
+            initial_provider_fingerprint = provider_fingerprint(self.config_home)
+            provider = read_provider(self.config_home)
+        except StorageKeyProviderError as exc:
+            raise StoreError(f"Cannot safely read storage provider selection: {exc}") from exc
         if self.target.is_symlink():
             raise StoreError(f"Refusing to manage symlinked environment file: {self.target}")
         if not self.target.exists():
+            if provider.provider == "service":
+                try:
+                    resolve_storage_key(
+                        self.config_home,
+                        self.state_dir,
+                        service_client=self._service_client,
+                    )
+                except StorageKeyProviderError as exc:
+                    raise StoreError(f"Cannot safely resolve selected storage key: {exc}") from exc
+            self._loaded_provider_fingerprint = provider_fingerprint(self.config_home)
+            if self._loaded_provider_fingerprint != initial_provider_fingerprint:
+                raise StoreError("Storage provider changed while loading the environment.")
             return
         try:
             raw_content = safe_read(self.target, MAX_ENVELOPE_BYTES)
             self._loaded_fingerprint = hashlib.sha256(raw_content).digest()
             self._loaded_encrypted = is_encrypted_document(raw_content)
             if self._loaded_encrypted:
-                key = load_or_create_file_key(self.storage_key_path, create=False)
-                raw_content = decrypt_document(raw_content, key)
-            elif not allow_legacy_with_key and (self.storage_key_path.exists() or self.storage_key_path.is_symlink()):
-                raise StoreError(
-                    "Plaintext managed environment conflicts with an existing storage key; "
-                    "run envman migrate-storage --apply."
+                key = resolve_storage_key(
+                    self.config_home,
+                    self.state_dir,
+                    service_client=self._service_client,
                 )
+                raw_content = decrypt_document(raw_content, key)
+            else:
+                if provider.provider == "service":
+                    if not allow_legacy_with_key:
+                        raise StoreError(
+                            "Plaintext managed environment conflicts with the selected service provider; "
+                            "run envman migrate-storage --apply."
+                        )
+                    resolve_storage_key(
+                        self.config_home,
+                        self.state_dir,
+                        service_client=self._service_client,
+                    )
+                elif not allow_legacy_with_key and (
+                    self.storage_key_path.exists() or self.storage_key_path.is_symlink()
+                ):
+                    raise StoreError(
+                        "Plaintext managed environment conflicts with an existing storage key; "
+                        "run envman migrate-storage --apply."
+                    )
+            self._loaded_provider_fingerprint = provider_fingerprint(self.config_home)
+            if self._loaded_provider_fingerprint != initial_provider_fingerprint:
+                raise StoreError("Storage provider changed while loading the environment.")
             content = raw_content.decode("utf-8")
         except SecureStoreError as exc:
             raise StoreError(f"Cannot safely load {self.target}: {exc}") from exc
+        except StorageKeyProviderError as exc:
+            raise StoreError(f"Cannot safely resolve selected storage key: {exc}") from exc
         except UnicodeDecodeError as exc:
             raise StoreError(f"Managed environment file is not valid UTF-8: {self.target}") from exc
 
@@ -1094,7 +1185,13 @@ class EnvironmentStore:
         try:
             contents = safe_read(path, MAX_ENVELOPE_BYTES)
             if path == self.target and not is_encrypted_document(contents):
-                key = load_or_create_file_key(self.storage_key_path, create=True)
+                provider = read_provider(self.config_home)
+                key = resolve_storage_key(
+                    self.config_home,
+                    self.state_dir,
+                    create=provider.provider == "file",
+                    service_client=self._service_client,
+                )
                 contents = encrypt_document(contents, key)
             archive_bytes = io.BytesIO()
             with tarfile.open(fileobj=archive_bytes, mode="w:gz") as bundle:
@@ -1106,7 +1203,7 @@ class EnvironmentStore:
             stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S.%fZ")
             archive = self.backup_dir / f"{path.name}.{stamp}.{secrets.token_hex(4)}.tar.gz"
             atomic_write_private(archive, archive_bytes.getvalue())
-        except SecureStoreError as exc:
+        except (SecureStoreError, KeyServiceError) as exc:
             raise StoreError(f"Cannot safely snapshot {path}: {exc}") from exc
 
     def write_values(self) -> None:
@@ -1145,19 +1242,32 @@ class EnvironmentStore:
             current_fingerprint = hashlib.sha256(current_document).digest() if current_document is not None else None
             if self._has_loaded_state and current_fingerprint != self._loaded_fingerprint:
                 raise StoreError("Managed environment changed since it was loaded; reload before saving.")
+            current_provider_fingerprint = provider_fingerprint(self.config_home)
+            if (
+                self._has_loaded_state
+                and current_provider_fingerprint != self._loaded_provider_fingerprint
+            ):
+                raise StoreError("Storage provider changed since it was loaded; reload before saving.")
             self.backup(self.target)
             plaintext = ("\n".join(rendered) + ("\n" if rendered else "")).encode("utf-8")
-            key = load_or_create_file_key(
-                self.storage_key_path,
-                create=current_document is None or not is_encrypted_document(current_document),
+            provider = read_provider(self.config_home)
+            key = resolve_storage_key(
+                self.config_home,
+                self.state_dir,
+                create=(
+                    provider.provider == "file"
+                    and (current_document is None or not is_encrypted_document(current_document))
+                ),
+                service_client=self._service_client,
             )
             encrypted = encrypt_document(plaintext, key)
             atomic_write_private(self.target, encrypted)
             self._loaded_fingerprint = hashlib.sha256(encrypted).digest()
+            self._loaded_provider_fingerprint = provider_fingerprint(self.config_home)
             self._has_loaded_state = True
             self._loaded_encrypted = True
             self.lines = rendered
-        except SecureStoreError as exc:
+        except (SecureStoreError, KeyServiceError) as exc:
             raise StoreError(f"Cannot safely write encrypted environment file {self.target}: {exc}") from exc
         except OSError as exc:
             raise StoreError(f"Cannot lock or write encrypted environment file {self.target}: {exc}") from exc
@@ -2642,6 +2752,26 @@ def build_cli_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Encrypt the current store and historical plaintext environment snapshots.",
     )
+    migrate_storage_parser.add_argument(
+        "--provider",
+        choices=("file", "service"),
+        help="Preview or migrate the selected storage-key provider.",
+    )
+    migrate_storage_parser.add_argument(
+        "--prepare",
+        action="store_true",
+        help="Persist the existing file key identity and print the root enrollment command.",
+    )
+    migrate_storage_parser.add_argument(
+        "--recovery-export",
+        metavar="PATH",
+        help="Create or verify a fresh encrypted export using explicit ENVMAN_BACKUP_KEY.",
+    )
+    migrate_storage_parser.add_argument(
+        "--remove-file-key",
+        action="store_true",
+        help="Remove the old file key after the service provider activates successfully.",
+    )
     update_parser = command("update", help="Check for or install a verified GitHub release update.")
     update_parser.add_argument("--check", action="store_true", help="Report whether an update is available without installing it.")
     update_parser.add_argument(
@@ -2906,6 +3036,496 @@ def emit_cli(result: dict[str, Any], as_json: bool, text: str) -> None:
         print(text)
 
 
+_KEY_SERVICE_ADMIN_SCRIPT = Path("/usr/local/lib/envman-key-service/runtime/_key_service.py")
+
+
+def _migration_service_key(store: EnvironmentStore, store_id: str) -> bytes:
+    try:
+        client = store._service_client or KeyServiceClient.from_system_config()
+        return client.get_key(store_id)
+    except (KeyServiceError, OSError, ValueError) as exc:
+        raise StoreError(f"Cannot verify the enrolled storage key: {exc}") from None
+
+
+def _migration_admin_command(store: EnvironmentStore, progress: MigrationProgress) -> str:
+    return " ".join(
+        (
+            "sudo /usr/bin/python3.12 -I",
+            shlex.quote(str(_KEY_SERVICE_ADMIN_SCRIPT)),
+            "admin-enroll",
+            "--uid",
+            str(os.getuid()),
+            "--store-id",
+            shlex.quote(progress.store_id),
+            "--key-fd 0 <",
+            shlex.quote(str(store.storage_key_path)),
+        )
+    )
+
+
+def _migration_retirement_command(store_id: str) -> str:
+    return " ".join(
+        (
+            "sudo /usr/bin/python3.12 -I",
+            shlex.quote(str(_KEY_SERVICE_ADMIN_SCRIPT)),
+            "admin-retire",
+            "--uid",
+            str(os.getuid()),
+            "--store-id",
+            shlex.quote(store_id),
+        )
+    )
+
+
+def _recovery_export(
+    raw_destination: str | None,
+    values: dict[str, str],
+    progress: MigrationProgress,
+) -> tuple[Path, str, dict[str, Any]]:
+    if raw_destination is None or not raw_destination.strip():
+        raise StoreError("Provider migration requires --recovery-export PATH.")
+    destination = encrypted_backup_destination(raw_destination).absolute()
+    if not os.environ.get(BACKUP_KEY_ENV):
+        raise StoreError(
+            f"Provider migration requires explicit {BACKUP_KEY_ENV}; the home encryption.key fallback is not accepted."
+        )
+
+    saved_path = progress.recovery_export_path
+    saved_hash = progress.recovery_export_sha256
+    if saved_path is not None:
+        if str(destination) != saved_path or saved_hash is None:
+            raise StoreError("Resume with the same --recovery-export path recorded for this migration.")
+        try:
+            raw = safe_read(destination, MAX_ENCRYPTED_BACKUP_BYTES, expected_mode=0o600)
+        except SecureStoreError as exc:
+            raise StoreError(f"Cannot safely verify the recorded recovery export: {exc}") from exc
+        digest = hashlib.sha256(raw).hexdigest()
+        if digest != saved_hash:
+            raise StoreError("Recorded recovery export changed; migration was not activated.")
+        restored = encrypted_backup_variables(destination, key_path=None)
+        if restored != values:
+            raise StoreError("Recovery export does not restore all current environment values.")
+        return destination, digest, {"path": str(destination), "sha256": digest}
+
+    if destination.exists() or destination.is_symlink():
+        # The export may have been durably created just before a crash, before
+        # its digest was attached to migration progress. Reconcile it in place;
+        # never replace or modify an existing destination.
+        try:
+            raw = safe_read(destination, MAX_ENCRYPTED_BACKUP_BYTES, expected_mode=0o600)
+            restored = encrypted_backup_variables(destination, key_path=None)
+        except (SecureStoreError, StoreError) as exc:
+            raise StoreError(f"Cannot safely verify existing recovery export: {exc}") from exc
+        if restored != values:
+            raise StoreError("Existing recovery export does not restore all current environment values.")
+        digest = hashlib.sha256(raw).hexdigest()
+        return destination, digest, {
+            "path": str(destination),
+            "sha256": digest,
+            "variables": len(values),
+        }
+    envelope = write_encrypted_backup(
+        destination,
+        values,
+        key_path=None,
+        exclusive=True,
+    )
+    try:
+        raw = safe_read(destination, MAX_ENCRYPTED_BACKUP_BYTES, expected_mode=0o600)
+        restored = encrypted_backup_variables(destination, key_path=None)
+    except (SecureStoreError, StoreError) as exc:
+        raise StoreError(f"Cannot verify independent recovery export: {exc}") from exc
+    if restored != values:
+        raise StoreError("Recovery export does not restore all current environment values.")
+    digest = hashlib.sha256(raw).hexdigest()
+    return destination, digest, {
+        "path": str(destination),
+        "schema": envelope["schema"],
+        "schema_version": envelope["schema_version"],
+        "sha256": digest,
+        "variables": len(values),
+    }
+
+
+def _verify_current_encrypted_store(store: EnvironmentStore, key: bytes) -> None:
+    if not store.target.exists():
+        return
+    try:
+        content = safe_read(store.target, MAX_ENVELOPE_BYTES)
+        if not is_encrypted_document(content):
+            raise StoreError("The current environment must be encrypted before provider activation.")
+        decrypt_document(content, key)
+    except SecureStoreError as exc:
+        raise StoreError(f"Cannot verify current encrypted environment: {exc}") from exc
+
+
+def _migration_result(
+    arguments: argparse.Namespace,
+    *,
+    action: str,
+    provider: ProviderSelection,
+    progress: MigrationProgress | None,
+    recovery_export: dict[str, Any] | None = None,
+    admin_command: str | None = None,
+    retirement_command: str | None = None,
+) -> int:
+    result: dict[str, Any] = {
+        "action": action,
+        "provider": provider.provider,
+        "provider_store_id": provider.store_id,
+        "pending_migration": progress is not None,
+        "pending_phase": None if progress is None else progress.phase,
+    }
+    if recovery_export is not None:
+        result["recovery_export"] = recovery_export
+    if admin_command is not None:
+        result["admin_command"] = admin_command
+    if retirement_command is not None:
+        result["admin_retirement_command"] = retirement_command
+    details = []
+    if recovery_export is not None:
+        details.append(f"verified recovery export at {recovery_export['path']}")
+    if admin_command is not None:
+        details.append(f"administrator enrollment command: {admin_command}")
+    if retirement_command is not None:
+        details.append(f"service retirement remains separate: {retirement_command}")
+    text = action.replace("-", " ").capitalize()
+    if details:
+        text += "; " + "; ".join(details)
+    emit_cli(result, arguments.json, text)
+    return EXIT_SUCCESS
+
+
+def _prepare_service_migration(arguments: argparse.Namespace, store: EnvironmentStore) -> int:
+    provider = read_provider(store.config_home)
+    if provider.provider != "file":
+        raise CommandError("Service enrollment preparation requires the file provider to be active.")
+
+    if not store.target.exists() or not store._loaded_encrypted:
+        # Preserve the existing explicit migration behavior: `--apply` encrypts
+        # legacy state before any administrator transfer is requested.
+        store.save()
+
+    try:
+        with environment_store_lock(store.write_lock):
+            revalidate_loaded_store(store)
+            current_provider = read_provider(store.config_home)
+            if current_provider.provider != "file":
+                raise ProviderMigrationError("Storage provider changed before enrollment preparation.")
+            key = resolve_storage_key(
+                store.config_home,
+                store.state_dir,
+                service_client=store._service_client,
+            )
+            progress = read_migration_progress(store.config_home)
+            if progress is None:
+                progress = new_service_progress(key)
+                write_migration_progress(store.config_home, progress)
+            elif (
+                progress.source_provider != "file"
+                or progress.target_provider != "service"
+                or progress.key_fingerprint != key_fingerprint(key)
+                or progress.phase not in {"enrollment-pending", "cleanup-pending"}
+            ):
+                raise ProviderMigrationError("Existing provider migration state does not match this file key; it was preserved.")
+            if progress.phase == "cleanup-pending":
+                raise ProviderMigrationError("Service migration is already active; use --remove-file-key to resume cleanup.")
+            migrated = migrate_legacy_snapshots(store.backup_dir, key)
+            remaining = store.legacy_plaintext_snapshot_count()
+            if remaining:
+                raise ProviderMigrationError("Plaintext environment snapshots remain after preparation.")
+            verify_encrypted_snapshots(store.backup_dir, key)
+    except (ProviderMigrationError, StorageKeyProviderError, SecureStoreError, OSError) as exc:
+        raise CommandError(f"Cannot prepare service provider migration: {exc}", EXIT_FAILURE) from exc
+
+    command = _migration_admin_command(store, progress)
+    result = {
+        "action": "enrollment-prepared",
+        "admin_command": command,
+        "legacy_plaintext_snapshots": remaining,
+        "migrated_snapshots": migrated,
+        "pending_migration": True,
+        "pending_phase": progress.phase,
+        "provider": "file",
+        "provider_store_id": None,
+        "store_id": progress.store_id,
+    }
+    emit_cli(
+        result,
+        arguments.json,
+        "Storage key migration prepared. Run the printed administrator enrollment command, "
+        f"then apply again with --provider service --recovery-export PATH --remove-file-key.\n{command}",
+    )
+    return EXIT_SUCCESS
+
+
+def _activate_service_migration(arguments: argparse.Namespace, store: EnvironmentStore) -> int:
+    try:
+        with environment_store_lock(store.write_lock):
+            revalidate_loaded_store(store)
+            active = read_provider(store.config_home)
+            progress = read_migration_progress(store.config_home)
+            if progress is None or progress.target_provider != "service" or progress.source_provider != "file":
+                raise ProviderMigrationError("No prepared file-to-service migration is available.")
+            if active.provider == "file":
+                if progress.phase != "enrollment-pending":
+                    raise ProviderMigrationError("Provider migration phase does not match the active provider.")
+                file_key = resolve_storage_key(
+                    store.config_home,
+                    store.state_dir,
+                    service_client=store._service_client,
+                )
+                if key_fingerprint(file_key) != progress.key_fingerprint:
+                    raise ProviderMigrationError("Storage key changed since preparation; the migration was not replaced.")
+                service_key = _migration_service_key(store, progress.store_id)
+                if service_key != file_key:
+                    raise ProviderMigrationError("Administrator enrollment does not contain the existing storage key.")
+                key = file_key
+            elif active.provider == "service" and active.store_id == progress.store_id:
+                if progress.phase not in {"enrollment-pending", "cleanup-pending"}:
+                    raise ProviderMigrationError("Provider migration phase does not match the active provider.")
+                key = resolve_storage_key(
+                    store.config_home,
+                    store.state_dir,
+                    service_client=store._service_client,
+                )
+                if key_fingerprint(key) != progress.key_fingerprint:
+                    raise ProviderMigrationError("Enrolled service key changed since preparation.")
+                if store.storage_key_path.exists() or store.storage_key_path.is_symlink():
+                    old_key = load_or_create_file_key(store.storage_key_path, create=False)
+                    if key_fingerprint(old_key) != progress.key_fingerprint:
+                        raise ProviderMigrationError("File storage key changed; cleanup was not performed.")
+            else:
+                raise ProviderMigrationError("Active provider changed during service migration; no key was removed.")
+
+            if store.target.exists():
+                _verify_current_encrypted_store(store, key)
+            migrate_legacy_snapshots(store.backup_dir, key)
+            if store.legacy_plaintext_snapshot_count():
+                raise ProviderMigrationError("Plaintext environment snapshots remain; no provider was activated.")
+            verify_encrypted_snapshots(store.backup_dir, key)
+            destination, digest, export_summary = _recovery_export(
+                getattr(arguments, "recovery_export", None),
+                store.values,
+                progress,
+            )
+            progress = attach_recovery_export(progress, destination, digest)
+            write_migration_progress(store.config_home, progress)
+            store.install_loaders()
+            revalidate_loaded_store(store)
+            active = read_provider(store.config_home)
+            if active.provider == "file":
+                write_provider(store.config_home, "service", progress.store_id)
+            elif active.provider != "service" or active.store_id != progress.store_id:
+                raise ProviderMigrationError("Storage provider changed before activation; no file key was removed.")
+            progress = MigrationProgress(
+                progress.source_provider,
+                progress.target_provider,
+                progress.store_id,
+                progress.key_fingerprint,
+                "cleanup-pending",
+                progress.recovery_export_path,
+                progress.recovery_export_sha256,
+            )
+            write_migration_progress(store.config_home, progress)
+            removed = remove_file_key(store.storage_key_path, progress.key_fingerprint)
+            remove_migration_progress(store.config_home)
+            activated = read_provider(store.config_home)
+    except (ProviderMigrationError, StorageKeyProviderError, KeyServiceError, SecureStoreError, OSError, StoreError) as exc:
+        raise CommandError(f"Cannot complete service provider migration: {exc}", EXIT_FAILURE) from exc
+
+    result = {
+        "action": "provider-activated",
+        "file_key_removed": removed,
+        "pending_migration": False,
+        "provider": activated.provider,
+        "provider_store_id": activated.store_id,
+        "recovery_export": export_summary,
+        "retirement_required": False,
+    }
+    emit_cli(
+        result,
+        arguments.json,
+        f"Service provider activated; file storage key {'removed' if removed else 'already absent'}; "
+        f"recovery export verified at {destination}.",
+    )
+    return EXIT_SUCCESS
+
+
+def _return_to_file_provider(arguments: argparse.Namespace, store: EnvironmentStore) -> int:
+    retirement_command: str | None = None
+    try:
+        with environment_store_lock(store.write_lock):
+            revalidate_loaded_store(store)
+            active = read_provider(store.config_home)
+            progress = read_migration_progress(store.config_home)
+            interrupted_activation = (
+                active.provider == "file"
+                and progress is not None
+                and progress.source_provider == "service"
+                and progress.target_provider == "file"
+                and progress.phase == "file-activation-pending"
+            )
+            if interrupted_activation:
+                assert progress is not None
+                # Activation may have committed immediately before a crash.
+                # Verify the committed state, clear the stale progress record,
+                # and continue to report the separate administrator retirement.
+                key = resolve_storage_key(
+                    store.config_home,
+                    store.state_dir,
+                    service_client=store._service_client,
+                )
+                if key_fingerprint(key) != progress.key_fingerprint:
+                    raise ProviderMigrationError("Active file storage key does not match the interrupted migration.")
+                if store.target.exists():
+                    _verify_current_encrypted_store(store, key)
+                migrate_legacy_snapshots(store.backup_dir, key)
+                if store.legacy_plaintext_snapshot_count():
+                    raise ProviderMigrationError("Plaintext environment snapshots remain; migration was not reconciled.")
+                verify_encrypted_snapshots(store.backup_dir, key)
+                destination, digest, export_summary = _recovery_export(
+                    getattr(arguments, "recovery_export", None),
+                    store.values,
+                    progress,
+                )
+                if digest != progress.recovery_export_sha256:
+                    raise ProviderMigrationError("Recovery export changed; migration was not reconciled.")
+                remove_migration_progress(store.config_home)
+                retirement_command = _migration_retirement_command(progress.store_id)
+                activated = read_provider(store.config_home)
+                recovered_store_id = progress.store_id
+            else:
+                if active.provider != "service" or active.store_id is None:
+                    raise ProviderMigrationError("Returning to file mode requires an active service provider.")
+                recovered_store_id = active.store_id
+                if progress is None:
+                    progress = new_file_progress(
+                        resolve_storage_key(
+                            store.config_home,
+                            store.state_dir,
+                            service_client=store._service_client,
+                        ),
+                        active.store_id,
+                    )
+                    write_migration_progress(store.config_home, progress)
+                elif (
+                    progress.source_provider != "service"
+                    or progress.target_provider != "file"
+                    or progress.store_id != active.store_id
+                    or progress.phase != "file-activation-pending"
+                ):
+                    raise ProviderMigrationError(
+                        "Existing provider migration state does not match the active service provider; it was preserved."
+                    )
+                key = resolve_storage_key(
+                    store.config_home,
+                    store.state_dir,
+                    service_client=store._service_client,
+                )
+                if key_fingerprint(key) != progress.key_fingerprint:
+                    raise ProviderMigrationError("Enrolled service key changed since return preparation.")
+                migrate_legacy_snapshots(store.backup_dir, key)
+                if store.legacy_plaintext_snapshot_count():
+                    raise ProviderMigrationError("Plaintext environment snapshots remain; file mode was not activated.")
+                verify_encrypted_snapshots(store.backup_dir, key)
+                if store.target.exists():
+                    _verify_current_encrypted_store(store, key)
+                destination, digest, export_summary = _recovery_export(
+                    getattr(arguments, "recovery_export", None),
+                    store.values,
+                    progress,
+                )
+                progress = attach_recovery_export(progress, destination, digest)
+                write_migration_progress(store.config_home, progress)
+                store.install_loaders()
+                install_file_key_if_missing(store.storage_key_path, key)
+                file_key = load_or_create_file_key(store.storage_key_path, create=False)
+                if file_key != key:
+                    raise ProviderMigrationError("File key verification failed; provider was not changed.")
+                _verify_current_encrypted_store(store, file_key)
+                verify_encrypted_snapshots(store.backup_dir, file_key)
+                revalidate_loaded_store(store)
+                active = read_provider(store.config_home)
+                if active.provider == "service" and active.store_id == progress.store_id:
+                    write_provider(store.config_home, "file")
+                elif active.provider != "file":
+                    raise ProviderMigrationError("Storage provider changed before file activation.")
+                remove_migration_progress(store.config_home)
+                activated = read_provider(store.config_home)
+                retirement_command = _migration_retirement_command(progress.store_id)
+    except (ProviderMigrationError, StorageKeyProviderError, KeyServiceError, SecureStoreError, OSError, StoreError) as exc:
+        raise CommandError(f"Cannot return storage to file provider: {exc}", EXIT_FAILURE) from exc
+
+    result = {
+        "action": "provider-returned-to-file",
+        "admin_retirement_required": True,
+        "provider": activated.provider,
+        "provider_store_id": activated.store_id,
+        "recovery_export": export_summary,
+        "service_key_copied_to_file": True,
+        "admin_retirement_command": retirement_command,
+        "retired_store_id": recovered_store_id,
+    }
+    emit_cli(
+        result,
+        arguments.json,
+        f"File provider activated with the existing service key; recovery export verified at {destination}. "
+        f"Retire the service enrollment separately with: {retirement_command}",
+    )
+    return EXIT_SUCCESS
+
+
+def run_provider_migration(arguments: argparse.Namespace, store: EnvironmentStore) -> int:
+    provider_name = getattr(arguments, "provider", None)
+    prepare = bool(getattr(arguments, "prepare", False))
+    remove_old_key = bool(getattr(arguments, "remove_file_key", False))
+    recovery_export = getattr(arguments, "recovery_export", None)
+    apply = bool(getattr(arguments, "apply", False))
+    if provider_name not in {"file", "service"}:
+        raise CommandError("Choose --provider file or --provider service.")
+    if provider_name is None and (prepare or remove_old_key or recovery_export):
+        raise CommandError("--prepare, --recovery-export, and --remove-file-key require --provider.")
+    if prepare and (provider_name != "service" or not apply or recovery_export or remove_old_key):
+        raise CommandError("--prepare requires --provider service --apply and cannot be combined with recovery or cleanup options.")
+    if remove_old_key and (provider_name != "service" or not apply or not recovery_export or prepare):
+        raise CommandError("--remove-file-key requires --provider service --apply --recovery-export PATH.")
+    if not apply:
+        if prepare or remove_old_key or recovery_export:
+            raise CommandError("Provider migration write phases require --apply.")
+        selected = read_provider(store.config_home)
+        progress = read_migration_progress(store.config_home)
+        emit_cli(
+            {
+                "action": "preview",
+                "current_plaintext": store.target.exists() and not store._loaded_encrypted,
+                "legacy_plaintext_snapshots": store.legacy_plaintext_snapshot_count(),
+                "pending_migration": progress is not None,
+                "pending_phase": None if progress is None else progress.phase,
+                "provider": selected.provider,
+                "provider_store_id": selected.store_id,
+                "requested_provider": provider_name,
+            },
+            arguments.json,
+            f"Storage provider migration preview: current provider {selected.provider}; target {provider_name}; "
+            f"legacy plaintext snapshots {store.legacy_plaintext_snapshot_count()}. Use --apply to continue.",
+        )
+        return EXIT_SUCCESS
+    if prepare:
+        return _prepare_service_migration(arguments, store)
+    if provider_name == "service":
+        if not recovery_export or not remove_old_key:
+            raise CommandError(
+                "Service activation requires --recovery-export PATH and explicit --remove-file-key cleanup."
+            )
+        return _activate_service_migration(arguments, store)
+    if not recovery_export:
+        raise CommandError("Returning to file mode requires --recovery-export PATH as an explicit recovery plan.")
+    if remove_old_key:
+        raise CommandError("--remove-file-key applies only to service-provider activation.")
+    return _return_to_file_provider(arguments, store)
+
+
 def persist_cli_change(
     store: EnvironmentStore,
     previous_values: dict[str, str],
@@ -3113,14 +3733,45 @@ def run_cli(arguments: argparse.Namespace, store: EnvironmentStore) -> int:
         return EXIT_SUCCESS
     if command == "check":
         legacy_snapshots = store.legacy_plaintext_snapshot_count()
+        try:
+            provider = read_provider(store.config_home)
+            migration = read_migration_progress(store.config_home)
+        except (StorageKeyProviderError, ProviderMigrationError) as exc:
+            raise CommandError(f"Cannot safely inspect storage provider state: {exc}", EXIT_FAILURE) from exc
+        backup_key_file_present = store.encryption_key_path.exists() or store.encryption_key_path.is_symlink()
+        backup_key_home_exposed = False
+        if backup_key_file_present:
+            try:
+                backup_key_home_exposed = store.encryption_key_path.resolve().is_relative_to(store.home.resolve())
+            except (AttributeError, OSError):
+                backup_key_home_exposed = False
+        provider_cleanup_pending = migration is not None and (
+            migration.phase == "cleanup-pending"
+            or (
+                provider.provider == "service"
+                and migration.target_provider == "service"
+                and provider.store_id == migration.store_id
+            )
+        )
         summary = f"OK: {len(store.values)} variable(s) in {store.target}"
         if store.target.exists() and not store._loaded_encrypted:
             summary += "; current plaintext store will be encrypted on its next save"
         if legacy_snapshots:
             summary += f"; warning: {legacy_snapshots} legacy plaintext snapshot(s) remain"
+        if provider_cleanup_pending:
+            summary += "; warning: storage provider migration cleanup is pending"
+        if backup_key_file_present:
+            summary += "; warning: a home config encryption.key can decrypt exported backups copied with it"
         emit_cli(
             {
+                "backup_key_file_present": backup_key_file_present,
+                "backup_key_home_exposed": backup_key_home_exposed,
                 "legacy_plaintext_snapshots": legacy_snapshots,
+                "provider_cleanup_pending": provider_cleanup_pending,
+                "provider_migration_pending": migration is not None,
+                "provider_migration_phase": None if migration is None else migration.phase,
+                "storage_provider": provider.provider,
+                "storage_provider_store_id": provider.store_id,
                 "storage_encrypted": store._loaded_encrypted,
                 "target": str(store.target),
                 "variables": len(store.values),
@@ -3130,6 +3781,17 @@ def run_cli(arguments: argparse.Namespace, store: EnvironmentStore) -> int:
         )
         return EXIT_SUCCESS
     if command == "migrate-storage":
+        if getattr(arguments, "provider", None) is not None:
+            try:
+                return run_provider_migration(arguments, store)
+            except (StorageKeyProviderError, ProviderMigrationError) as exc:
+                raise CommandError(f"Cannot inspect storage provider state: {exc}", EXIT_FAILURE) from exc
+        if (
+            getattr(arguments, "prepare", False)
+            or getattr(arguments, "recovery_export", None)
+            or getattr(arguments, "remove_file_key", False)
+        ):
+            raise CommandError("--prepare, --recovery-export, and --remove-file-key require --provider.")
         pending = store.legacy_plaintext_snapshot_count()
         current_plaintext = store.target.exists() and not store._loaded_encrypted
         if not arguments.apply:
@@ -3149,30 +3811,21 @@ def run_cli(arguments: argparse.Namespace, store: EnvironmentStore) -> int:
             store.save()
         migrated = 0
         if pending:
-            lock_descriptor: int | None = None
             try:
-                flags = os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
-                lock_descriptor = os.open(store.write_lock, flags, 0o600)
-                metadata = os.fstat(lock_descriptor)
-                if not stat.S_ISREG(metadata.st_mode) or metadata.st_uid != os.getuid():
-                    raise StoreError("Environment write lock is not a private regular file.")
-                os.fchmod(lock_descriptor, 0o600)
-                fcntl.flock(lock_descriptor, fcntl.LOCK_EX)
-                key = load_or_create_file_key(
-                    store.storage_key_path,
-                    create=not store.target.exists(),
-                )
-                migrated = migrate_legacy_snapshots(store.backup_dir, key)
-            except SecureStoreError as exc:
+                with environment_store_lock(store.write_lock):
+                    revalidate_loaded_store(store)
+                    provider = read_provider(store.config_home)
+                    key = resolve_storage_key(
+                        store.config_home,
+                        store.state_dir,
+                        create=provider.provider == "file" and not store.target.exists(),
+                        service_client=store._service_client,
+                    )
+                    migrated = migrate_legacy_snapshots(store.backup_dir, key)
+            except (SecureStoreError, StorageKeyProviderError, ProviderMigrationError) as exc:
                 raise StoreError(f"Cannot safely migrate environment snapshots: {exc}") from exc
             except OSError as exc:
                 raise StoreError(f"Cannot lock environment snapshots for migration: {exc}") from exc
-            finally:
-                if lock_descriptor is not None:
-                    try:
-                        fcntl.flock(lock_descriptor, fcntl.LOCK_UN)
-                    finally:
-                        os.close(lock_descriptor)
         remaining = store.legacy_plaintext_snapshot_count()
         emit_cli(
             {

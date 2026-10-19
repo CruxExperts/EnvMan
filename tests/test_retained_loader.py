@@ -3,17 +3,23 @@
 from __future__ import annotations
 
 import os
+import hashlib
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
+import uuid
 from pathlib import Path
 from unittest import mock
 
 from cryptography.fernet import Fernet
 
 from envman._retained_loader import install_retained_runtime
+from envman._key_service import DirectoryKeyRegistry, KeyServiceServer
+from envman._key_provider import write_provider
 from envman._secure_store import atomic_write_private, encrypt_document, load_or_create_file_key
 from envman.cli import EnvironmentStore
 
@@ -240,6 +246,111 @@ class RetainedLoaderTests(unittest.TestCase):
             self.assertNotEqual(wrong_key.returncode, 0)
             self.assertEqual(wrong_key.stdout, b"")
             self.assertNotIn(b"space $PATH", wrong_key.stderr)
+
+    def test_standalone_runtime_retrieves_service_key_after_cli_removal(self) -> None:
+        """Fixture-only endpoint trust; exercise the copied client over a real socket."""
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            home = root / "home"
+            config = home / ".config"
+            utility = config / "envman"
+            state = home / ".local" / "state"
+            service_state = root / "service-state"
+            home.mkdir()
+            utility.mkdir(parents=True, mode=0o700)
+            service_state.mkdir(mode=0o700)
+            uid = os.getuid()
+            service_uid = uid if uid > 0 else 1
+            if os.geteuid() == 0:
+                os.chown(service_state, service_uid, -1)
+            elif service_uid != uid:
+                self.fail("fixture service state must remain owned by the current test user")
+
+            store_id = str(uuid.uuid4())
+            key = Fernet.generate_key()
+            registry = DirectoryKeyRegistry.for_test(
+                service_state,
+                service_uid,
+                identity_for_uid=lambda _uid: hashlib.sha256(b"fixture-account").hexdigest(),
+                admin_authorizer=lambda: True,
+            )
+            registry.enroll(uid, store_id, key)
+
+            socket_path = root / "key-service.sock"
+            listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            listener.bind(str(socket_path))
+            listener.listen(8)
+            server = KeyServiceServer(listener, registry)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+
+            try:
+                write_provider(config, "service", store_id)
+                source = utility / "environment.conf"
+                assignments = b"SERVICE_VALUE=retained-without-envman-cli\n"
+                atomic_write_private(source, encrypt_document(assignments, key))
+                loader = install_retained_runtime(utility)
+
+                # The copied runtime gets an explicitly fixture-scoped endpoint.
+                # It still performs the real bounded client protocol and receives
+                # the server's kernel-authenticated peer credentials.
+                service_module = loader.parent / "_key_service.py"
+                service_source = service_module.read_text(encoding="utf-8")
+                from_system_config = (
+                    "def from_system_config(cls) -> KeyServiceClient:\n"
+                    "        return cls(ServiceEndpoint.from_system_config())"
+                )
+                fixture_endpoint = (
+                    "def from_system_config(cls) -> KeyServiceClient:\n"
+                    "        return cls(ServiceEndpoint.for_test(\n"
+                    f"            Path({str(socket_path)!r}),\n"
+                    f"            state_dir=Path({str(service_state)!r}),\n"
+                    f"            service_uid={service_uid},\n"
+                    "            allow_root_peer=True,\n"
+                    "        ))"
+                )
+                self.assertIn(from_system_config, service_source)
+                service_module.write_text(
+                    service_source.replace(from_system_config, fixture_endpoint, 1),
+                    encoding="utf-8",
+                )
+
+                child_env = {
+                    "HOME": str(home),
+                    "XDG_CONFIG_HOME": str(config),
+                    "XDG_STATE_HOME": str(state),
+                    "PATH": os.environ.get("PATH", ""),
+                }
+                result = subprocess.run(
+                    [sys._base_executable, "-I", "-S", str(loader)],
+                    env=child_env,
+                    cwd=home,
+                    capture_output=True,
+                    check=False,
+                    timeout=10,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, b"SERVICE_VALUE=retained-without-envman-cli\n")
+                self.assertFalse((state / "envman" / "storage.key").exists())
+
+                server.close()
+                thread.join(timeout=2)
+                outage = subprocess.run(
+                    [sys._base_executable, "-I", "-S", str(loader)],
+                    env=child_env,
+                    cwd=home,
+                    capture_output=True,
+                    check=False,
+                    timeout=10,
+                )
+                self.assertNotEqual(outage.returncode, 0)
+                self.assertEqual(outage.stdout, b"")
+                self.assertIn(b"could not unlock or validate", outage.stderr)
+                self.assertNotIn(b"retained-without-envman-cli", outage.stderr)
+                self.assertFalse((state / "envman" / "storage.key").exists())
+            finally:
+                server.close()
+                thread.join(timeout=2)
 
 
 if __name__ == "__main__":

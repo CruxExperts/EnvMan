@@ -9,18 +9,19 @@
 ## Guides
 
 - [Terminal UI](guides/tui.md) - ACTIVE `guide`; tags: `tui`, `curses`; updated 2026-09-24.
-- [CLI reference](guides/cli.md) - ACTIVE `reference`; tags: `cli`, `automation`, `json`; updated 2026-09-24.
-- [Encrypted backups and migration](guides/backups-and-migration.md) - ACTIVE `guide`; tags: `backups`, `encryption`, `migration`; updated 2026-09-24.
+- [CLI reference](guides/cli.md) - ACTIVE `reference`; tags: `cli`, `automation`, `json`; updated 2026-10-19.
+- [Encrypted backups and migration](guides/backups-and-migration.md) - ACTIVE `guide`; tags: `backups`, `encryption`, `migration`; updated 2026-10-19.
+- [Local storage key service](guides/local-key-service.md) - ACTIVE `guide`; tags: `storage`, `encryption`, `provisioning`; updated 2026-10-19.
 
 ## Reference
 
-- [Storage and shell loading](reference/storage-and-shell-loading.md) - ACTIVE `reference`; tags: `storage`, `shells`; updated 2026-09-24.
+- [Storage and shell loading](reference/storage-and-shell-loading.md) - ACTIVE `reference`; tags: `storage`, `shells`; updated 2026-10-19.
 - [Installation sources and updates](reference/install-source-and-updates.md) - ACTIVE `reference`; tags: `release`, `installer`, `updates`; updated 2026-09-24.
 
 ## Development
 
 - [Architecture](development/architecture.md) - ACTIVE `reference`; tags: `architecture`, `package`; updated 2026-10-19.
-- [Testing](development/testing.md) - ACTIVE `how_to`; tags: `testing`, `unittest`; updated 2026-07-20.
+- [Testing](development/testing.md) - ACTIVE `how_to`; tags: `testing`, `unittest`; updated 2026-10-19.
 - [Versioning and releases](development/versioning-and-releases.md) - ACTIVE `reference`; tags: `versioning`, `releases`; updated 2026-09-24.
 
 ## Governance

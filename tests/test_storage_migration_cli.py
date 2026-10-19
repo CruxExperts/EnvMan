@@ -14,10 +14,32 @@ from pathlib import Path
 from unittest import mock
 
 from envman._secure_store import load_or_create_file_key
-from envman.cli import EnvironmentStore, StoreError, is_encrypted_document, run_cli
+from envman.cli import CommandError, EnvironmentStore, StoreError, is_encrypted_document, run_cli
 
 
 class StorageMigrationCliTests(unittest.TestCase):
+    def test_provider_migration_options_require_an_explicit_provider(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            home = Path(temporary_directory) / "home"
+            home.mkdir()
+            store = EnvironmentStore(home, home / ".config")
+            store.utility_dir.mkdir(parents=True, mode=0o700)
+            store.load()
+            for options in (
+                {"prepare": True, "recovery_export": None, "remove_file_key": False},
+                {"prepare": False, "recovery_export": str(home / "recovery.json"), "remove_file_key": False},
+                {"prepare": False, "recovery_export": None, "remove_file_key": True},
+            ):
+                arguments = argparse.Namespace(
+                    command="migrate-storage",
+                    apply=True,
+                    json=True,
+                    provider=None,
+                    **options,
+                )
+                with self.assertRaisesRegex(CommandError, "require --provider"):
+                    run_cli(arguments, store)
+
     def test_existing_key_rejects_plaintext_until_explicit_migration(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             home = Path(temporary_directory) / "home"
@@ -51,6 +73,7 @@ class StorageMigrationCliTests(unittest.TestCase):
             with mock.patch.dict(os.environ, {"XDG_STATE_HOME": str(state)}):
                 store = EnvironmentStore(home, home / ".config")
                 store.backup_dir.mkdir(parents=True, mode=0o700)
+                store.utility_dir.chmod(0o700)
                 store.target.write_bytes(b"SAMPLE_TOKEN=sample-secret\n")
                 store.target.chmod(0o600)
                 historical = store.backup_dir / "environment.conf.20200101T000000Z.tar.gz"
