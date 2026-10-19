@@ -15,8 +15,8 @@ product promise is **Your environment, in order.**
 
 | Placement | File | Export size |
 | --- | --- | --- |
-| GitHub social preview and 2:1 link cards | [social-preview.png](social-preview.png) | 1280 × 640 |
-| Repository README and wide banners | [github-banner.png](github-banner.png) | 1600 × 640 |
+| GitHub social preview, desktop README hero, and 2:1 link cards | [social-preview.png](social-preview.png) | 1280 × 640 |
+| Extra-wide banners | [github-banner.png](github-banner.png) | 1600 × 640 |
 | Square social posts and narrow README layouts | [social-square.png](social-square.png) | 1080 × 1080 |
 | Application/profile mark | [brand-mark.svg](brand-mark.svg), [PNG](brand-mark.png) | Vector; 1024 × 1024 |
 | Light-background wordmark | [logo-light.svg](logo-light.svg), [PNG](logo-light.png) | Vector; 1120 × 256 |
@@ -35,6 +35,11 @@ replacement for the organization's account avatar.
 `terminal-preview.svg` and `terminal-preview-mobile.svg` remain synthetic product
 illustrations, not photographs or screenshots of a live user session. Their
 sample state is independent of the campaign artwork.
+
+The desktop README hero deliberately uses the exact social-preview PNG, not a
+separately generated logo or illustration. The narrow README uses the square
+composition of the same master. Keep these references aligned when changing the
+brand; do not reintroduce the earlier lime-tile wordmark as the README hero.
 
 ## Regenerate and package
 
@@ -67,9 +72,11 @@ trademark clearance.
 
 ## GitHub social preview
 
-The public repository was checked on 2026-10-19. Its Open Graph and Twitter card
-metadata both pointed to a working custom 1280 × 640 preview, using the earlier
-terminal-catalog design. The new card is prepared in `social-preview.png`.
+The public repository was checked on 2026-10-19 after the social-preview upload.
+Its Open Graph and Twitter card metadata both serve the new sculpted teal
+artwork from `social-preview.png`. The live README still referenced the older
+lime-tile wordmark at that check; the matching README hero requires publishing
+the local repository changes.
 
 Uploading is a separate publication step: **Settings → General → Social preview
 → Edit → Upload an image** in the [repository settings](https://github.com/CruxExperts/EnvMan/settings).

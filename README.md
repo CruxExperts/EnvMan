@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(max-width: 640px)" srcset="docs/assets/social-square.png">
-    <img src="docs/assets/github-banner.png" width="1280" alt="Envman — Your environment, in order. Set variables once. Load them in new shells.">
+    <img src="docs/assets/social-preview.png" width="1280" alt="Envman — Your environment, in order. Set variables once. Load them in new shells.">
   </picture>
 </p>
 

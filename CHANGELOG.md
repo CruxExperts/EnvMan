@@ -9,6 +9,8 @@ All notable changes are documented here.
 - Refine the bracket-equals identity with coordinated vector wordmarks, compact
   icons, sculpted brand artwork, and dedicated wide and square social images.
 - Add reproducible, ownership-tagged image exports and a versioned brand asset pack.
+- Use the same artwork for the desktop README hero and GitHub social preview,
+  with a matching square composition on narrow screens.
 
 ## [0.1.11] - 2026-10-19
 

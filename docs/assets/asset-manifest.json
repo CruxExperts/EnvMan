@@ -26,8 +26,8 @@
   "renderer": "scripts/render_visual_assets.py",
   "regenerate": "python3 scripts/render_visual_assets.py --all",
   "exports": [
-    {"source": "social-preview.svg", "raster": "social-preview.png", "dimensions": [1280, 640], "placement": "GitHub social preview"},
-    {"source": "github-banner.svg", "raster": "github-banner.png", "dimensions": [1600, 640], "placement": "README and wide banners"},
+    {"source": "social-preview.svg", "raster": "social-preview.png", "dimensions": [1280, 640], "placement": "GitHub social preview and desktop README hero"},
+    {"source": "github-banner.svg", "raster": "github-banner.png", "dimensions": [1600, 640], "placement": "Extra-wide banners"},
     {"source": "social-square.svg", "raster": "social-square.png", "dimensions": [1080, 1080], "placement": "Square social posts and mobile README"},
     {"source": "brand-mark.svg", "raster": "brand-mark.png", "dimensions": [1024, 1024], "placement": "Application/profile mark"},
     {"source": "logo-light.svg", "raster": "logo-light.png", "dimensions": [1120, 256], "placement": "Light backgrounds"},
