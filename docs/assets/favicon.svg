@@ -1,12 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
   <title id="title">Envman</title>
+  <desc id="desc">A mineral-teal square with pale brackets and a restrained lime equals sign.</desc>
   <metadata>
-    <dc:title>Envman favicon</dc:title>
+    <dc:title>Envman</dc:title>
     <dc:creator>Crux Experts LLC</dc:creator>
     <dc:source>https://www.cruxexperts.com/</dc:source>
     <dc:rights>Copyright © 2026 Crux Experts LLC. Private asset. Property of Crux Experts LLC. Use, reproduction, modification, distribution, or publication without prior written permission is prohibited.</dc:rights>
   </metadata>
-  <rect width="64" height="64" rx="12" fill="#083b43"/>
-  <path d="M22 15h-8v34h8M42 15h8v34h-8" fill="none" stroke="#dfff72" stroke-width="5"/>
-  <path d="M25 26h14M25 38h14" fill="none" stroke="#f7fbfa" stroke-width="5"/>
+<svg x="0" y="0" width="64" height="64" viewBox="0 0 64 64"><rect x="1" y="1" width="62" height="62" rx="14" fill="#0c3036" stroke="#386067" stroke-width="1"/><path d="M23 17h-8v30h8M41 17h8v30h-8" fill="none" stroke="#b8e5da" stroke-width="4"/><path d="M26 27h12M26 37h12" fill="none" stroke="#e4f49b" stroke-width="4"/></svg>
 </svg>

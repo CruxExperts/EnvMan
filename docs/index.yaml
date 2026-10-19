@@ -98,3 +98,12 @@ documents:
     last_updated: "2026-10-19"
     doc_type: checklist
     tags: [publishing, github]
+  - id: visual-assets
+    path: docs/assets/README.md
+    title: Visual assets and social preview
+    category_label: Assets
+    category_slug: assets
+    status: ACTIVE
+    last_updated: "2026-10-19"
+    doc_type: reference
+    tags: [branding, graphics, github, social-preview]

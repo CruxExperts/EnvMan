@@ -29,3 +29,7 @@ Read these guides directly on GitHub. The repository README and releases are the
 ## Governance
 
 - [Historical v0.1.5 publishing checklist](governance/publishing-checklist.md) - ARCHIVED `checklist`; tags: `publishing`, `github`; updated 2026-10-19.
+
+## Assets
+
+- [Visual assets and social preview](assets/README.md) - ACTIVE `reference`; tags: `branding`, `graphics`, `github`, `social-preview`; updated 2026-10-19.

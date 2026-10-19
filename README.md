@@ -1,8 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="docs/assets/logo-light.svg">
-    <img src="docs/assets/logo-light.svg" width="360" alt="Envman wordmark">
+    <source media="(max-width: 640px)" srcset="docs/assets/social-square.png">
+    <img src="docs/assets/github-banner.png" width="1280" alt="Envman — Your environment, in order. Set variables once. Load them in new shells.">
   </picture>
 </p>
 

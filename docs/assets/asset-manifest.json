@@ -1,0 +1,39 @@
+{
+  "name": "Envman brand assets",
+  "version": "1.0.0",
+  "created": "2026-10-19",
+  "creator": "Crux Experts LLC",
+  "copyright": "Copyright © 2026 Crux Experts LLC",
+  "source": "https://www.cruxexperts.com/",
+  "rights": "Private asset. Property of Crux Experts LLC. Use, reproduction, modification, distribution, or publication without prior written permission is prohibited.",
+  "master": {
+    "path": "brand-artwork.webp",
+    "dimensions": [1536, 1024],
+    "method": "OMP built-in image generation",
+    "provider": "openai-codex",
+    "reported_model": "gpt-image-2-codex",
+    "reported_quality": "medium",
+    "postprocessing": "Lossless WebP re-encoding with embedded ownership XMP; no image-content edits.",
+    "prompt": {
+      "subject": "Use case: logo-brand / premium developer-tool brand artwork. Create a single exquisite brand hero image for Envman, an environment-variable terminal manager. Existing identity is a square-bracketed equals sign [=], mineral teal, deep ink, pale ivory and a tiny restrained acid-lime accent. Preserve that exact symbol concept: two square brackets enclosing TWO horizontal equal bars, not three. Render a large sculptural freestanding [=] emblem in satin anodized mineral-teal metal with pale brushed-metal front edges, precise bevels, luxurious subtle craftsmanship, beautifully restrained lighting. Object floats on right half of wide landscape composition with soft shadow and subtle teal atmosphere, left 52 percent remains uninterrupted almost-black deep ink negative space for typography to be composited later. Elegant Swiss editorial meets premium industrial product photography; sophisticated quiet confidence, physically credible material, exceptionally crisp contours. No text, letters, watermark, UI, terminal screenshot, locks, shields, padlocks, plants, circuitry, neon cyberpunk, shiny plastic, extra symbols, or busy decoration. Do not draw a frame around the composition. This is finished high-quality artwork, not a moodboard or contact sheet.",
+      "composition": "Wide landscape, emblem centered at 75 percent horizontal and 50 percent vertical, generous safe margins, near-black teal seamless background. Emblem approximately 55 percent image height.",
+      "lighting": "Large softbox grazing the bevels, restrained pale teal rim, delicate lime reflection only on one edge; calm dark editorial lighting",
+      "style": "Photorealistic luxury industrial brand sculpture, minimalist, elegant, polished",
+      "aspect_ratio": "3:2",
+      "image_size": "1536x1024"
+    }
+  },
+  "renderer": "scripts/render_visual_assets.py",
+  "regenerate": "python3 scripts/render_visual_assets.py --all",
+  "exports": [
+    {"source": "social-preview.svg", "raster": "social-preview.png", "dimensions": [1280, 640], "placement": "GitHub social preview"},
+    {"source": "github-banner.svg", "raster": "github-banner.png", "dimensions": [1600, 640], "placement": "README and wide banners"},
+    {"source": "social-square.svg", "raster": "social-square.png", "dimensions": [1080, 1080], "placement": "Square social posts and mobile README"},
+    {"source": "brand-mark.svg", "raster": "brand-mark.png", "dimensions": [1024, 1024], "placement": "Application/profile mark"},
+    {"source": "logo-light.svg", "raster": "logo-light.png", "dimensions": [1120, 256], "placement": "Light backgrounds"},
+    {"source": "logo-dark.svg", "raster": "logo-dark.png", "dimensions": [1120, 256], "placement": "Dark backgrounds"},
+    {"source": "favicon.svg", "raster": "favicon.png", "dimensions": [64, 64], "placement": "Small application icon"}
+  ],
+  "preserved_product_illustrations": ["terminal-preview.svg", "terminal-preview-mobile.svg"],
+  "archive": "envman-brand-assets-v1.0.0.zip"
+}

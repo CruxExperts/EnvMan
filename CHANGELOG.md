@@ -2,6 +2,14 @@
 
 All notable changes are documented here.
 
+## Unreleased
+
+### Changed
+
+- Refine the bracket-equals identity with coordinated vector wordmarks, compact
+  icons, sculpted brand artwork, and dedicated wide and square social images.
+- Add reproducible, ownership-tagged image exports and a versioned brand asset pack.
+
 ## [0.1.11] - 2026-10-19
 
 ![Envman: set variables once, load them in new shells](https://raw.githubusercontent.com/CruxExperts/EnvMan/v0.1.11/docs/assets/social-preview.png)
