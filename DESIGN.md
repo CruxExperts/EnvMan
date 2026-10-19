@@ -26,13 +26,13 @@ Prompts occupy the status row and clear that row before each redraw. `Q` and `Es
 - Keep controls compact enough for the minimum terminal size and clip long values instead of wrapping list rows.
 - Keep a colorless path (`envman --nocolor`) usable for terminals that do not support curses color pairs.
 
-## Public identity and documentation site
+## Public identity and documentation
 
-The public identity is built around a bracketed equals mark: `[=]`. Mineral teal and deep ink carry the main surfaces, while a high-visibility yellow-green is reserved for primary actions and live status. The site uses a bright reading surface around a dark product stage, rather than turning every documentation page into a terminal imitation.
+The public identity is built around a bracketed equals mark: `[=]`. Mineral teal and deep ink carry the main surfaces, while a high-visibility yellow-green is reserved for primary actions and live status.
 
-The GitHub README and Pages site share the same wordmark, terminal preview, install path, product boundaries, and documentation routes. Public pages use system fonts, keep body copy under 74 characters per line, preserve visible keyboard focus, adapt to light and dark preferences, and remove motion for users who request reduced motion. The synthetic product preview contains no real environment values.
+The GitHub README and repository documentation share the same wordmark, install path, product boundaries, and documentation routes. GitHub Pages is retired. The README uses a real terminal recording with synthetic demonstration values, an animated fallback, and a still image for reduced-motion preferences.
 
-Original visual assets live under `docs/assets/`. SVG is the editable source format. The 1280 by 640 PNG is the repository and page social image; it is derived from `social-preview.svg` and carries the asset ownership metadata required by the repository policy.
+Original visual assets live under `docs/assets/`. SVG is the editable source format for brand artwork. The 1280 by 640 PNG is the README hero and repository social image; it is derived from `social-preview.svg` and carries the asset ownership metadata required by the repository policy.
 
 ## Boundary
 

@@ -74,6 +74,14 @@ git diff --exit-code -- install.py
 
 `check_docs.py` treats `docs/index.yaml` as the machine source of truth and requires every indexed file to exist and be linked from `docs/INDEX.md`. Rendering must leave the committed installer unchanged; edit `_release_protocol.py`, not `install.py`, when the protocol changes.
 
+`version.py check` also protects the distinction between source and published
+versions: it rejects the ambiguous old README version display, requires one
+matching source-version display and the dynamic GitHub latest-release badge,
+and checks installer provenance. The version regressions exercise misleading,
+missing, duplicate, and mismatched displays. Source skill links follow `main`;
+release asset checks verify that the distributed skill instead uses the
+version-specific documentation tag.
+
 ## Reproducible release checks
 
 Before publishing, build the artifacts twice from the tagged commit timestamp and compare both outputs:

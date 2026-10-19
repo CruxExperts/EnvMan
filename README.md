@@ -12,7 +12,12 @@
 [![Latest release](https://img.shields.io/github/v/release/CruxExperts/envman?sort=semver)](https://github.com/CruxExperts/envman/releases/latest)
 [![MIT license](https://img.shields.io/github/license/CruxExperts/envman)](LICENSE)
 
-**Version:** 0.1.12
+**Source version:** 0.1.12
+
+This is the version of this source checkout, not a publication claim. The
+**Latest release** badge above and [GitHub Releases](https://github.com/CruxExperts/envman/releases/latest)
+identify the published version installed by the commands below. Source changes
+awaiting publication are listed under [Unreleased](CHANGELOG.md#unreleased).
 
 Keep per-user environment variables in one managed store. Browse and edit them in a focused terminal catalog, or use the CLI from scripts. Generated shell loaders keep startup files readable.
 

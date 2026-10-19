@@ -15,6 +15,18 @@ All notable changes are documented here.
   walkthrough of 48 demonstration variables, using a brand-matched terminal
   palette, lossless WebP, GIF fallback, and a reduced-motion still image.
 
+### Fixed
+
+- Label the README version as the source checkout rather than an available
+  release, and keep published-version discovery tied to GitHub Releases.
+- Reject ambiguous or duplicate README version displays in the quality gate.
+- Keep source agent-skill documentation links usable before a release tag
+  exists, while pinning distributed skill links to the release version.
+- Remove retired Pages-site claims from the design documentation and identify
+  the recorded interface as a development checkout.
+- Correct the product's stale plaintext-storage description and make recovery
+  export responsibility explicit before snapshot migration.
+
 ## [0.1.11] - 2026-10-19
 
 ![Envman: set variables once, load them in new shells](https://raw.githubusercontent.com/CruxExperts/EnvMan/v0.1.11/docs/assets/social-preview.png)

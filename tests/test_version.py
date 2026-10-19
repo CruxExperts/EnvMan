@@ -12,6 +12,18 @@ version_tool = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(version_tool)
 
 
+def _readme(source_version: str, badge: str = version_tool.LATEST_RELEASE_BADGE) -> str:
+    return f"**Source version:** {source_version}\n\n{badge}\n"
+
+
+def _write_repo(root: Path, current_version: str, readme: str, installer_version: str) -> None:
+    (root / "VERSION").write_text(f"{current_version}\n", encoding="utf-8")
+    (root / "README.md").write_text(readme, encoding="utf-8")
+    protocol = root / "src" / "envman" / "_release_protocol.py"
+    protocol.parent.mkdir(parents=True, exist_ok=True)
+    protocol.write_text(f'INSTALLER_VERSION = "{installer_version}"\n', encoding="utf-8")
+
+
 class VersionPolicyTests(unittest.TestCase):
     def test_fully_reverted_commit_does_not_contribute_a_bump(self) -> None:
         original = ("a1b2c3d4e5f6", "feat: add temporary behavior", "")
@@ -49,19 +61,71 @@ class VersionPolicyTests(unittest.TestCase):
         self.assertEqual(result["target"], "0.1.2")
 
 
+    def test_check_accepts_source_version_ahead_of_published_release(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _write_repo(root, "0.1.12", _readme("0.1.12"), "0.1.12")
+            with patch.object(version_tool, "ROOT", root):
+                self.assertEqual(version_tool.check(), 0)
+
+    def test_check_rejects_legacy_version_even_with_correct_source_display(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            readme = "**Version:** 0.1.11\n\n" + _readme("0.1.12")
+            _write_repo(root, "0.1.12", readme, "0.1.12")
+            with patch.object(version_tool, "ROOT", root):
+                with self.assertRaisesRegex(ValueError, r"ambiguous \*\*Version:\*\*"):
+                    version_tool.check()
+
+    def test_check_rejects_invalid_source_displays_and_release_badges(self) -> None:
+        cases = {
+            "missing source": (
+                f"Release notes\n\n{version_tool.LATEST_RELEASE_BADGE}\n",
+                r"exactly one \*\*Source version:\*\*",
+            ),
+            "duplicate source": (
+                _readme("0.1.5") + "**Source version:** 0.1.5\n",
+                r"exactly one \*\*Source version:\*\*",
+            ),
+            "mismatched source": (
+                _readme("0.1.4"),
+                "source version display must equal VERSION",
+            ),
+            "missing latest-release badge": (
+                "**Source version:** 0.1.5\n",
+                "canonical latest-release badge and link",
+            ),
+            "hard-coded published release": (
+                _readme("0.1.5", version_tool.LATEST_RELEASE_BADGE.replace("/releases/latest)", "/releases/tag/v0.1.5)")),
+                "canonical latest-release badge and link",
+            ),
+        }
+        for case, (readme, error) in cases.items():
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                _write_repo(root, "0.1.5", readme, "0.1.5")
+                with patch.object(version_tool, "ROOT", root):
+                    with self.assertRaisesRegex(ValueError, error):
+                        version_tool.check()
+
+    def test_sync_updates_only_source_field_and_preserves_release_badge(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            original = (
+                "# Project\n\n"
+                "**Source version:** 0.1.11\n\n"
+                f"{version_tool.LATEST_RELEASE_BADGE}\n"
+            )
+            expected = original.replace("**Source version:** 0.1.11", "**Source version:** 0.1.12")
+            _write_repo(root, "0.1.12", original, "0.1.12")
+            with patch.object(version_tool, "ROOT", root):
+                self.assertEqual(version_tool.sync(), 0)
+            self.assertEqual((root / "README.md").read_text(encoding="utf-8"), expected)
+
     def test_check_rejects_stale_installer_version_in_release_protocol(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            protocol = root / "src" / "envman" / "_release_protocol.py"
-            protocol.parent.mkdir(parents=True)
-            (root / "VERSION").write_text("0.1.5\n", encoding="utf-8")
-            (root / "README.md").write_text("**Version:** 0.1.5\n", encoding="utf-8")
-            protocol.write_text(
-                '# INSTALLER_VERSION = "0.1.5"\n'
-                'note = \'INSTALLER_VERSION = "0.1.5"\'\n'
-                'INSTALLER_VERSION = "0.1.3"\n',
-                encoding="utf-8",
-            )
+            _write_repo(root, "0.1.5", _readme("0.1.5"), "0.1.3")
             with patch.object(version_tool, "ROOT", root):
                 with self.assertRaisesRegex(ValueError, "INSTALLER_VERSION"):
                     version_tool.check()

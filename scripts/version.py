@@ -15,7 +15,24 @@ SEMVER = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 REVERT_TARGET = re.compile(r"This reverts commit (?P<sha>[0-9a-f]{7,40})\.", re.IGNORECASE)
 CONVENTIONAL = re.compile(r"^(?:[a-z]+)(?:\([^)]+\))?!?: .+")
 RELEASE_TYPE = re.compile(r"^Release-Type:\s*(major|minor|patch|none)\s*$", re.MULTILINE | re.IGNORECASE)
-README_VERSION = re.compile(r"^\*\*Version:\*\* (?P<version>[^\s]+)$", re.MULTILINE)
+README_SOURCE_LABEL = re.compile(r"^[ \t]*\*\*Source version:\*\*", re.MULTILINE)
+README_SOURCE_VERSION = re.compile(r"^\*\*Source version:\*\* (?P<version>[^\s]+)$", re.MULTILINE)
+README_LEGACY_VERSION = re.compile(r"^[ \t]*\*\*Version:\*\*", re.MULTILINE)
+LATEST_RELEASE_BADGE = "[![Latest release](https://img.shields.io/github/v/release/CruxExperts/envman?sort=semver)](https://github.com/CruxExperts/envman/releases/latest)"
+
+
+def readme_source_version(readme: str) -> re.Match[str]:
+    """Require one unambiguous source-version line and the canonical dynamic release badge."""
+    if README_LEGACY_VERSION.search(readme) is not None:
+        raise ValueError("README must not contain ambiguous **Version:** display")
+    if len(README_SOURCE_LABEL.findall(readme)) != 1:
+        raise ValueError("README must contain exactly one **Source version:** display")
+    matches = list(README_SOURCE_VERSION.finditer(readme))
+    if len(matches) != 1:
+        raise ValueError("README must contain exactly one canonical **Source version:** display")
+    if readme.count(LATEST_RELEASE_BADGE) != 1:
+        raise ValueError("README must contain exactly one canonical latest-release badge and link")
+    return matches[0]
 
 
 def run_git(*args: str, allow_failure: bool = False) -> str:
@@ -154,9 +171,10 @@ def plan() -> dict[str, object]:
 
 def check() -> int:
     current = version()
-    match = README_VERSION.search((ROOT / "README.md").read_text(encoding="utf-8"))
-    if match is None or match.group("version") != current:
-        raise ValueError("README version display must equal VERSION")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    match = readme_source_version(readme)
+    if match.group("version") != current:
+        raise ValueError("README source version display must equal VERSION")
     installer = installer_version()
     if installer != current:
         raise ValueError("INSTALLER_VERSION must equal VERSION")
@@ -167,10 +185,10 @@ def sync() -> int:
     current = version()
     readme = ROOT / "README.md"
     original = readme.read_text(encoding="utf-8")
-    updated, count = README_VERSION.subn(f"**Version:** {current}", original)
-    if count != 1:
-        raise ValueError("README must contain exactly one version display")
-    readme.write_text(updated, encoding="utf-8")
+    match = readme_source_version(original)
+    updated = original[: match.start("version")] + current + original[match.end("version") :]
+    if updated != original:
+        readme.write_text(updated, encoding="utf-8")
     return check()
 
 

@@ -193,7 +193,7 @@ enrollment command. Activation requires `--apply --recovery-export PATH
 --remove-file-key` and explicit `ENVMAN_BACKUP_KEY`; it never uses the home backup
 key fallback. Returning to `--provider file` requires an explicit recovery
 export and leaves service retirement as a separate administrator action. Read
-the [local key-service guide](https://github.com/CruxExperts/envman/blob/v0.1.12/docs/guides/local-key-service.md)
+the [local key-service guide](https://github.com/CruxExperts/envman/blob/main/docs/guides/local-key-service.md)
 before deployment. Review `check` for pending cleanup and plaintext snapshots;
 exports copied together with `encryption.key` remain exposed to home copies.
 
@@ -247,8 +247,8 @@ or `update --check` to reconcile the observed state first.
 
 ## Canonical documentation
 
-- [CLI reference](https://github.com/CruxExperts/envman/blob/v0.1.12/docs/guides/cli.md)
-- [Encrypted backups and migration](https://github.com/CruxExperts/envman/blob/v0.1.12/docs/guides/backups-and-migration.md)
-- [Terminal UI guide](https://github.com/CruxExperts/envman/blob/v0.1.12/docs/guides/tui.md)
-- [Storage and shell loading](https://github.com/CruxExperts/envman/blob/v0.1.12/docs/reference/storage-and-shell-loading.md)
-- [Installation sources and updates](https://github.com/CruxExperts/envman/blob/v0.1.12/docs/reference/install-source-and-updates.md)
+- [CLI reference](https://github.com/CruxExperts/envman/blob/main/docs/guides/cli.md)
+- [Encrypted backups and migration](https://github.com/CruxExperts/envman/blob/main/docs/guides/backups-and-migration.md)
+- [Terminal UI guide](https://github.com/CruxExperts/envman/blob/main/docs/guides/tui.md)
+- [Storage and shell loading](https://github.com/CruxExperts/envman/blob/main/docs/reference/storage-and-shell-loading.md)
+- [Installation sources and updates](https://github.com/CruxExperts/envman/blob/main/docs/reference/install-source-and-updates.md)

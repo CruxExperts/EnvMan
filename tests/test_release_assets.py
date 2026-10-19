@@ -2,18 +2,22 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
+from scripts import render_agent_skill
 from scripts import release_assets
 
 
 class ReleaseAssetsTests(unittest.TestCase):
-    def test_assets_copy_version_locked_canonical_skill_and_manifest_metadata(self) -> None:
+    def test_assets_pin_published_skill_links_and_leave_canonical_links_on_main(self) -> None:
         version = (release_assets.ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        source_bytes = release_assets.SKILL_SOURCE.read_bytes()
+        source_text = source_bytes.decode("utf-8")
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary)
             wheel = output / f"envman-{version}-py3-none-any.whl"
@@ -23,7 +27,14 @@ class ReleaseAssetsTests(unittest.TestCase):
 
             assets = release_assets.assets(version, output)
             skill = output / "envman-environment-variable-manager-skill.md"
-            self.assertEqual(skill.read_bytes(), release_assets.SKILL_SOURCE.read_bytes())
+            published_text = skill.read_text(encoding="utf-8")
+            doc_refs = re.compile(
+                r"https://github\.com/CruxExperts/envman/blob/(main|v\d+\.\d+\.\d+)/docs/"
+            )
+            self.assertEqual(set(doc_refs.findall(source_text)), {"main"})
+            self.assertEqual(set(doc_refs.findall(published_text)), {f"v{version}"})
+            self.assertEqual(release_assets.SKILL_SOURCE.read_bytes(), source_bytes)
+            self.assertEqual(release_assets.SKILL_LOCK_PATTERN.search(published_text).group("version"), version)
             self.assertEqual(assets["skill"]["filename"], skill.name)
             self.assertEqual(assets["skill"]["size"], skill.stat().st_size)
             self.assertEqual(assets["skill"]["sha256"], hashlib.sha256(skill.read_bytes()).hexdigest())
@@ -59,6 +70,17 @@ class ReleaseAssetsTests(unittest.TestCase):
                     release_assets.skill_bytes(version)
             finally:
                 release_assets.SKILL_SOURCE = original
+
+    def test_renderer_check_rejects_stale_tagged_documentation_links(self) -> None:
+        version = (release_assets.ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        source = release_assets.SKILL_SOURCE.read_text(encoding="utf-8")
+        stale = source.replace("blob/main/docs/", f"blob/v{version}/docs/")
+        self.assertNotEqual(stale, source)
+        with tempfile.TemporaryDirectory() as temporary:
+            skill = Path(temporary) / "SKILL.md"
+            skill.write_text(stale, encoding="utf-8")
+            with mock.patch.object(render_agent_skill, "SKILL_FILE", skill):
+                self.assertEqual(render_agent_skill.main(["--check"]), 1)
 
 
 if __name__ == "__main__":

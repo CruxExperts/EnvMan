@@ -22,7 +22,7 @@ COMMAND_BLOCK_PATTERN = re.compile(
     r"(?ms)^<!-- BEGIN GENERATED COMMANDS -->\n.*?^<!-- END GENERATED COMMANDS -->$"
 )
 DOC_LINK_PATTERN = re.compile(
-    r"(https://github\.com/CruxExperts/envman/blob/)v\d+\.\d+\.\d+(/docs/)"
+    r"(https://github\.com/CruxExperts/envman/blob/)(?:v\d+\.\d+\.\d+|main)(/docs/)"
 )
 
 
@@ -128,6 +128,14 @@ def _generated_command_block(commands: list[tuple[str, str]]) -> str:
     return "\n".join(rows)
 
 
+def project_doc_links(source: str, ref: str) -> str:
+    """Project repository documentation links to the requested Git reference."""
+    return DOC_LINK_PATTERN.sub(
+        lambda match: f"{match.group(1)}{ref}{match.group(2)}",
+        source,
+    )
+
+
 def render_skill(source: str, version: str, commands: list[tuple[str, str]]) -> str:
     lock = f"<!-- envman-skill-lock: version={version} source={SOURCE_MARKER} -->"
     if len(LOCK_PATTERN.findall(source)) != 1:
@@ -136,7 +144,7 @@ def render_skill(source: str, version: str, commands: list[tuple[str, str]]) -> 
         raise ValueError("SKILL.md must contain exactly one generated command block")
     rendered = LOCK_PATTERN.sub(lock, source)
     rendered = COMMAND_BLOCK_PATTERN.sub(_generated_command_block(commands), rendered)
-    return DOC_LINK_PATTERN.sub(rf"\g<1>v{version}\g<2>", rendered)
+    return project_doc_links(rendered, "main")
 
 
 def main(argv: list[str] | None = None) -> int:

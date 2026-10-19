@@ -36,9 +36,10 @@ The application mark is supplied for project-specific placements, not as a
 replacement for the organization's account avatar.
 
 The product screenshot and walkthrough are native captures of the actual Envman
-0.1.12 interface running in WezTerm. Only the 48 demonstration variables are
-synthetic; the interface, selection cursor, text entry, masking, and saved edit
-are real. There is no generated interface or simulated mouse pointer.
+0.1.12 development checkout running in WezTerm, not evidence of a published
+0.1.12 release. Only the 48 demonstration variables are synthetic; the interface,
+selection cursor, text entry, masking, and saved edit are real. There is no
+generated interface or simulated mouse pointer.
 
 The desktop README hero deliberately uses the exact social-preview PNG, not a
 separately generated logo or illustration. The narrow README uses the square

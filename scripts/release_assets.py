@@ -9,6 +9,12 @@ import re
 import tomllib
 from pathlib import Path
 
+if __package__:
+    from .render_agent_skill import project_doc_links
+else:
+    from render_agent_skill import project_doc_links
+
+
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = "CruxExperts/envman"
 SKILL_SOURCE = ROOT / ".agents" / "skills" / "envman-environment-variable-manager" / "SKILL.md"
@@ -42,7 +48,8 @@ def skill_bytes(version: str) -> bytes:
     markers = list(SKILL_LOCK_PATTERN.finditer(text))
     if len(markers) != 1 or markers[0].group("version") != version:
         raise ValueError("canonical agent skill is not locked to the requested release")
-    return raw
+    published = project_doc_links(text, f"v{version}")
+    return published.encode("utf-8")
 
 
 def assets(version: str, output: Path) -> dict[str, dict[str, object]]:
