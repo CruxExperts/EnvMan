@@ -2,7 +2,7 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
     <source media="(prefers-color-scheme: light)" srcset="docs/assets/logo-light.svg">
-    <img src="docs/assets/logo-light.svg" width="420" alt="Envman">
+    <img src="docs/assets/logo-light.svg" width="360" alt="Envman wordmark">
   </picture>
 </p>
 
@@ -10,18 +10,21 @@
 
 [![CI](https://github.com/CruxExperts/envman/actions/workflows/ci.yml/badge.svg)](https://github.com/CruxExperts/envman/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/CruxExperts/envman/actions/workflows/codeql.yml/badge.svg)](https://github.com/CruxExperts/envman/actions/workflows/codeql.yml)
-[![Pages](https://github.com/CruxExperts/envman/actions/workflows/pages.yml/badge.svg)](https://cruxexperts.github.io/envman/)
+[![Latest release](https://img.shields.io/github/v/release/CruxExperts/envman?sort=semver)](https://github.com/CruxExperts/envman/releases/latest)
+[![MIT license](https://img.shields.io/github/license/CruxExperts/envman)](LICENSE)
 
-**Version:** 0.1.10
+**Version:** 0.1.11
 
-Envman manages durable, per-user environment variables on Linux. Use the terminal UI for deliberate local edits or the CLI for repeatable commands and JSON output. Values live in one managed location, so shell startup files stay readable.
+Keep per-user environment variables in one managed store. Browse and edit them in a focused terminal catalog, or use the CLI from scripts. Generated shell loaders keep startup files readable.
+
+**Linux x86_64** · **CPython 3.12** · **uv >=0.11** · **Terminal UI + CLI**
 
 > [!IMPORTANT]
-> Release installation currently supports Linux x86_64, CPython `>=3.12,<3.13`, and `uv >=0.11`.
+> The verified release installer currently supports Linux x86_64, CPython `>=3.12,<3.13`, and `uv >=0.11`.
 
-## Install and open
+## Install and open Envman
 
-The release installer verifies immutable asset URLs, sizes, SHA-256 hashes, wheel metadata, runtime constraints, and the local host before installing the wheel.
+Before installing, the release installer checks immutable asset URLs, sizes, hashes, wheel metadata, runtime requirements, and host compatibility.
 
 ```bash
 uv run --python 3.12 --script \
@@ -31,20 +34,24 @@ export PATH="$(uv tool dir --bin):$PATH"
 envman
 ```
 
-A new store starts empty. Press `A` to add the first variable. Press `Q` or `Esc` when you are ready to leave the catalog and start a child shell with the managed environment.
+A new store starts empty. Press `A` to add a variable. Press `Q` or `Esc` to leave the catalog and start a child shell with the managed environment.
 
-![Envman terminal catalog showing a project path, service URL, masked API token, focused-row details, and keyboard controls](docs/assets/terminal-preview.svg)
+<picture>
+  <source media="(max-width: 720px)" srcset="docs/assets/terminal-preview-mobile.svg">
+  <img src="docs/assets/terminal-preview.svg" width="1120" alt="Synthetic Envman terminal catalog with a selected project path, sample service URL, masked API token, focus details, and keyboard controls">
+</picture>
 
-## Why Envman
+The preview uses sample values only. Sensitive values stay masked in ordinary output.
 
-- The TUI and CLI use the same validation, masking, and persistence rules.
-- Values classified as sensitive by their names, plus password-bearing URLs, stay masked in ordinary output.
-- Imports show a preview before `--apply` writes any change.
-- New saves encrypt the managed configuration with a separate private storage key.
-- Encrypted exports use an independent backup credential.
-- Updates follow the verified provider recorded in the installation receipt.
+## A small set of useful guarantees
 
-Envman is a local operator tool. It does not provide hosted sync, team access control, remote secret storage, or a replacement for an operating-system credential store.
+- The terminal UI and CLI share the same validation, masking, and save behavior.
+- Sensitive names and password-bearing URLs stay masked unless a trusted caller explicitly asks to reveal them.
+- Process and backup imports show proposed changes first; `--apply` is required to write them.
+- New saves encrypt the managed configuration with a separate private storage key. Encrypted exports use an independent backup credential.
+- Updates stay tied to the trusted provider recorded in the private installation receipt.
+
+Envman is a local operator tool. It does not provide hosted sync, team access control, or remote secret storage, and it does not replace an operating-system credential store.
 
 ## Use the interface that fits the job
 
@@ -73,6 +80,8 @@ Envman stores assignments under `${XDG_CONFIG_HOME:-$HOME/.config}/envman/`. The
 
 Anyone who obtains both the storage key and encrypted file can recover the values. The optional [local key service](docs/guides/local-key-service.md) separates keys from user homes through one-time administrator provisioning and explicit migration. Code acting as the enrolled user, root, service-account compromise, hypervisor access, and full VM snapshots remain outside its protection. The [storage and shell-loading reference](docs/reference/storage-and-shell-loading.md) documents the full boundary and plaintext-snapshot migration.
 
+The local key service is experimental and requires separate administrator provisioning and migration. Its systemd startup, SSH, and reboot behavior have not yet been qualified on an isolated deployment.
+
 Encrypted backup files use `ENVMAN_BACKUP_KEY` when it is configured. Otherwise Envman can use a private fallback key, but only after explicit approval:
 
 ```bash
@@ -98,7 +107,7 @@ uv run --python 3.12 --script \
   --install-skill --skill-scope repository --skill-target opencode
 ```
 
-Use `--skill-target all` for every LocalSetup 5.6.2 write shape, or repeat `--skill-target AGENT` for selected agents. The installed updater can refresh the skill from Envman's latest verified GitHub release even when the tool version is already current:
+Use `--skill-target all` for every LocalSetup 4.49.2 write shape, or repeat `--skill-target AGENT` for selected agents. The installed updater can refresh the skill from Envman's latest verified GitHub release even when the tool version is already current:
 
 ```bash
 envman update --install-skill --skill-scope global --skill-target codex
@@ -118,10 +127,9 @@ The installer refuses symlink escapes and preserves an unmarked existing skill. 
 - [Inspect the release and update trust boundary](docs/reference/install-source-and-updates.md)
 - [Read the architecture](docs/development/architecture.md)
 - [Run the test suite](docs/development/testing.md)
-- [Open the GitHub Pages documentation](https://cruxexperts.github.io/envman/)
 
 ## Support and contributions
 
 Ask usage questions in [GitHub Discussions](https://github.com/CruxExperts/envman/discussions). Report reproducible defects in [GitHub Issues](https://github.com/CruxExperts/envman/issues). Suspected vulnerabilities belong in [private vulnerability reporting](https://github.com/CruxExperts/envman/security/advisories/new), never a public issue.
 
-Contributors should read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and the [Code of conduct](CODE_OF_CONDUCT.md). Envman is released under the [MIT License](LICENSE).
+Contributors should read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and the [Code of conduct](CODE_OF_CONDUCT.md). Envman source code is released under the [MIT License](LICENSE); original visual assets remain private and carry their own embedded notices.

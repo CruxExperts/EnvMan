@@ -2,6 +2,50 @@
 
 All notable changes are documented here.
 
+## [0.1.11] - 2026-10-19
+
+![Envman: set variables once, load them in new shells](https://raw.githubusercontent.com/CruxExperts/EnvMan/v0.1.11/docs/assets/social-preview.png)
+
+Keep your environment settings easy to use, with a new option to keep their
+storage keys outside copied home directories.
+
+### Added
+
+- Add an optional local key service for Linux. An administrator can keep keys
+  outside user homes, with separate access for each user and store. It needs no
+  TPM, desktop keyring, or network service.
+- Add explicit enrollment and migration that preserve existing keys and old
+  snapshots, verify an independent recovery export, and report unfinished cleanup.
+- Keep the retained shell loader working after CLI removal, including service
+  retrieval and clear failure without partial assignments or a disk key cache.
+
+### Changed
+
+- Refresh the README, product artwork, banners, and social share image with
+  clearer explanations of the benefits.
+- Keep documentation on GitHub and retire the separate GitHub Pages site.
+- Refresh the generated agent-skill catalog from the latest stable LocalSetup
+  release and keep installer, skill, and package versions aligned.
+- Refresh the pinned crypto runtime and build tools after version-specific
+  advisory checks; keep release downloads and retained loaders on the same pins.
+
+### Fixed
+
+- Detect provider changes before a stale writer can overwrite a newer store.
+- Make interrupted migrations recoverable without replacing keys or silently
+  switching back to file storage.
+- Preserve file-provider compatibility when provider metadata is absent.
+
+### Experimental feature
+
+The local key service is opt-in and requires separate administrator provisioning.
+It protects passive home/configuration copies after cleanup. It does not protect
+against code running as the enrolled user, root, service-account compromise,
+hypervisor access, or full VM snapshots containing the keys. Actual systemd,
+desktop/SSH, reboot, and VM startup-performance qualification remains outstanding.
+See the [local key-service guide](https://github.com/CruxExperts/EnvMan/blob/v0.1.11/docs/guides/local-key-service.md)
+before deployment. The existing file provider remains the default.
+
 ## [0.1.10] - 2026-09-24
 
 ### Added

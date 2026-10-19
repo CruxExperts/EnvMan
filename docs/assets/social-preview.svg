@@ -1,26 +1,61 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
-  <title id="title">Envman social preview</title>
-  <desc id="desc">Envman logo and product description beside a compact terminal variable catalog.</desc>
+  <title id="title">Envman | Set variables once. Load them in new shells.</title>
+  <desc id="desc">A bracketed-equals Envman mark, supported Linux and Python versions, and a synthetic terminal catalog with masked sample values.</desc>
   <metadata>
-    <dc:title>Envman repository social preview</dc:title>
+    <dc:title>Envman | Set variables once. Load them in new shells.</dc:title>
     <dc:creator>Crux Experts LLC</dc:creator>
     <dc:source>https://www.cruxexperts.com/</dc:source>
     <dc:rights>Copyright © 2026 Crux Experts LLC. Private asset. Property of Crux Experts LLC. Use, reproduction, modification, distribution, or publication without prior written permission is prohibited.</dc:rights>
   </metadata>
   <rect width="1280" height="640" fill="#071b22"/>
   <rect x="0" y="0" width="20" height="640" fill="#dfff72"/>
-  <rect x="80" y="72" width="88" height="88" rx="16" fill="#dfff72"/>
-  <path d="M112 94H98v44h14M136 94h14v44h-14" fill="none" stroke="#083b43" stroke-width="7"/>
-  <path d="M116 108h16M116 125h16" fill="none" stroke="#10252c" stroke-width="7"/>
-  <text x="190" y="141" fill="#f7fbfa" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="68" font-weight="750" letter-spacing="-3">envman</text>
-  <text x="80" y="241" fill="#f7fbfa" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="44" font-weight="700">Persistent environment variables,</text>
-  <text x="80" y="296" fill="#f7fbfa" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="44" font-weight="700">without the startup-file sprawl.</text>
-  <text x="80" y="358" fill="#9fc0c5" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="24">Terminal UI · scriptable CLI · encrypted backups</text>
-  <rect x="80" y="430" width="1120" height="136" rx="12" fill="#0d3038" stroke="#2d5960" stroke-width="2"/>
-  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="22">
-    <text x="111" y="471" fill="#dfff72">[*]</text><text x="170" y="471" fill="#f7fbfa" font-weight="700">PROJECT_PATH</text><text x="467" y="471" fill="#77dfe5">/srv/envman</text>
-    <text x="111" y="511" fill="#75959a">[ ]</text><text x="170" y="511" fill="#f7fbfa">SERVICE_URL</text><text x="467" y="511" fill="#b9cdd0">https://service.example</text>
-    <text x="111" y="551" fill="#75959a">[ ]</text><text x="170" y="551" fill="#f7fbfa">SERVICE_API_TOKEN</text><text x="467" y="551" fill="#f3c86a">tok_••••••••••••_6b2f</text>
+  <g aria-hidden="true">
+    <rect x="72" y="64" width="76" height="76" rx="14" fill="#dfff72"/>
+    <path d="M99 83H88v39h11M121 83h11v39h-11" fill="none" stroke="#083b43" stroke-width="6" stroke-linecap="square"/>
+    <path d="M102 95h16M102 110h16" fill="none" stroke="#10252c" stroke-width="6" stroke-linecap="square"/>
+    <text x="168" y="124" fill="#f7fbfa" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="58" font-weight="750" letter-spacing="-2">envman</text>
   </g>
-  <text x="80" y="606" fill="#6f9399" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="18">github.com/CruxExperts/envman</text>
+  <text x="72" y="220" fill="#f7fbfa" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="40" font-weight="760">Set variables once.</text>
+  <text x="72" y="271" fill="#f7fbfa" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="40" font-weight="760">Load them in new shells.</text>
+  <text x="72" y="330" fill="#b9cdd0" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="23">One managed store. Edit in the terminal;</text>
+  <text x="72" y="362" fill="#b9cdd0" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="23">use the CLI from your scripts.</text>
+
+  <g font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="17" font-weight="650">
+    <rect x="72" y="424" width="144" height="42" rx="21" fill="#0d3038" stroke="#2d5960" stroke-width="2"/>
+    <text x="91" y="451" fill="#f7fbfa">Linux x86_64</text>
+    <rect x="226" y="424" width="154" height="42" rx="21" fill="#0d3038" stroke="#2d5960" stroke-width="2"/>
+    <text x="245" y="451" fill="#f7fbfa">CPython 3.12</text>
+    <rect x="390" y="424" width="124" height="42" rx="21" fill="#0d3038" stroke="#2d5960" stroke-width="2"/>
+    <text x="414" y="451" fill="#f7fbfa">uv &gt;=0.11</text>
+  </g>
+  <text x="72" y="590" fill="#8cabb0" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="18">github.com/CruxExperts/envman</text>
+
+  <rect x="628" y="80" width="588" height="476" rx="12" fill="#0a2027" stroke="#2d5960" stroke-width="2"/>
+  <circle cx="658" cy="109" r="5" fill="#f36f56"/>
+  <circle cx="678" cy="109" r="5" fill="#f3c86a"/>
+  <circle cx="698" cy="109" r="5" fill="#72d7a1"/>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+    <text x="646" y="157" fill="#77dfe5" font-size="20" font-weight="700">Envman / Managed variables</text>
+    <text x="646" y="191" fill="#8cabb0" font-size="14">Store: ~/.config/envman/environment.conf</text>
+    <text x="1030" y="191" fill="#f7fbfa" font-size="16">Mode: Manage</text>
+    <line x1="646" y1="211" x2="1198" y2="211" stroke="#2d5960" stroke-width="2"/>
+    <text x="646" y="246" fill="#b9cdd0" font-size="16">1 selected · 3 shown</text>
+    <rect x="642" y="263" width="558" height="53" rx="5" fill="#0e5059"/>
+    <text x="657" y="297" fill="#dfff72" font-size="17" font-weight="700">[*]</text>
+    <text x="705" y="297" fill="#f7fbfa" font-size="17" font-weight="700">PROJECT_PATH</text>
+    <text x="934" y="297" fill="#77dfe5" font-size="17">/srv/envman</text>
+    <text x="657" y="355" fill="#8cabb0" font-size="17">[ ]</text>
+    <text x="705" y="355" fill="#f7fbfa" font-size="17">SERVICE_URL</text>
+    <text x="934" y="355" fill="#b9cdd0" font-size="17">https://service.example</text>
+    <text x="657" y="413" fill="#8cabb0" font-size="17">[ ]</text>
+    <text x="705" y="413" fill="#f7fbfa" font-size="17">SERVICE_API_TOKEN</text>
+    <text x="934" y="413" fill="#f3c86a" font-size="17">tok_••••••••_6b2f</text>
+    <line x1="646" y1="439" x2="1198" y2="439" stroke="#2d5960" stroke-width="2"/>
+    <text x="646" y="476" fill="#dfff72" font-size="16" font-weight="700">A</text><text x="667" y="476" fill="#b9cdd0" font-size="16">Add</text>
+    <text x="731" y="476" fill="#dfff72" font-size="16" font-weight="700">E</text><text x="752" y="476" fill="#b9cdd0" font-size="16">Edit</text>
+    <text x="821" y="476" fill="#dfff72" font-size="16" font-weight="700">I</text><text x="842" y="476" fill="#b9cdd0" font-size="16">Import</text>
+    <text x="944" y="476" fill="#dfff72" font-size="16" font-weight="700">B</text><text x="965" y="476" fill="#b9cdd0" font-size="16">Backup</text>
+    <rect x="642" y="497" width="558" height="42" rx="5" fill="#dfff72"/>
+    <text x="658" y="524" fill="#10252c" font-size="16" font-weight="700">Ready. Sensitive values stay masked.</text>
+  </g>
 </svg>

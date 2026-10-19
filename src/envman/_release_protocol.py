@@ -38,15 +38,15 @@ WHEEL_LIMIT = 20 * 1024 * 1024
 SKILL_LIMIT = 1 * 1024 * 1024
 REQUEST_TIMEOUT_SECONDS = 30
 LATEST_MANIFEST_URL = "https://github.com/CruxExperts/envman/releases/latest/download/release-manifest-v2.json"
-INSTALLER_VERSION = "0.1.10"
+INSTALLER_VERSION = "0.1.11"
 SEMVER = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 UV_VERSION = re.compile(r"\buv\s+(\d+)\.(\d+)\.(\d+)\b", re.IGNORECASE)
 DIST_INFO_NAME = re.compile(r"^envman-[^-]+\.dist-info/METADATA$")
 SKILL_VERSION_MARKER = re.compile(r"(?m)^<!--\s*envman-skill-lock:\s*version=(?P<version>\d+\.\d+\.\d+)\s+source=src/envman/cli\.py\s*-->\s*$")
 # BEGIN GENERATED LOCALSETUP SKILL TARGETS
-LOCALSETUP_COMPATIBILITY_VERSION = "5.6.2"
-LOCALSETUP_COMPATIBILITY_SOURCE = "https://github.com/CruxExperts/localsetup/tree/v5.6.2"
+LOCALSETUP_COMPATIBILITY_VERSION = "4.49.2"
+LOCALSETUP_COMPATIBILITY_SOURCE = "https://github.com/CruxExperts/localsetup/tree/v4.49.2"
 LOCALSETUP_CLIENTS_SHA256 = "7ff5ac026dab938d2976ecf306c35e4befc7ce8ed4bd1de10fe4dce99c41ed45"
 LOCALSETUP_PLATFORMS_SHA256 = "3e3de44c53d649e2acb35732b02e2b400dbeb45b8f81bcd1c95469fe6d89d9c2"
 LOCALSETUP_SKILL_TARGETS = {'amp-cli': {'global_discover': ('~/.agents/skills',),

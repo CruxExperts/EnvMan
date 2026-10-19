@@ -1,5 +1,4 @@
 ---
-layout: default
 title: Architecture
 ---
 
@@ -132,7 +131,7 @@ root or a process acting as the unlocked user can retrieve them.
 
 ## Hardware-independent key isolation
 
-**Status: implemented, pending isolated deployment acceptance, 2026-10-19.**
+**Status: experimental in v0.1.11, pending isolated deployment acceptance, 2026-10-19.**
 The optional Linux local key service implements the proposal recorded in commit
 `43d26f2`. The default file provider and authenticated document format remain
 compatible. The [deployment and migration guide](../guides/local-key-service.md)

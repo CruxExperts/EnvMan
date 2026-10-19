@@ -1,5 +1,4 @@
 ---
-layout: default
 title: Testing
 ---
 
@@ -57,7 +56,9 @@ and source-archive builds, and release-asset projections passed. Package
 inspection confirmed the shared provider, service, and migration modules and
 the source provisioning builder are included. Builds used a clean candidate
 tree containing task-owned changes, excluding unrelated untracked skill
-projections. Dependencies and runtime constraint pins were unchanged.
+projections. The v0.1.11 release refreshes the locked crypto runtime and build
+tools after exact-version advisory checks. Runtime constraints are generated
+from the same lockfile used to build and validate the retained loader.
 
 ### Generated sources and documentation
 

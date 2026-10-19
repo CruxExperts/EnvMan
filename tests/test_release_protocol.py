@@ -216,7 +216,7 @@ class ReleaseProtocolTests(unittest.TestCase):
                 release.skill_install_plan(skill_scope="repository", repo_root=root)
 
     def test_localsetup_catalog_is_pinned_to_the_latest_stable_release(self) -> None:
-        self.assertEqual(release.LOCALSETUP_COMPATIBILITY_VERSION, "5.6.2")
+        self.assertEqual(release.LOCALSETUP_COMPATIBILITY_VERSION, "4.49.2")
         self.assertEqual(
             set(release.LOCALSETUP_SKILL_TARGETS),
             {
@@ -341,7 +341,7 @@ class ReleaseProtocolTests(unittest.TestCase):
                 state_root=state,
             )
             self.assertEqual(result["status"], "skill-installed")
-            self.assertEqual(result["localsetup_compatibility_version"], "5.6.2")
+            self.assertEqual(result["localsetup_compatibility_version"], "4.49.2")
             self.assertTrue(
                 (repo / ".agents" / "skills" / release.SKILL_DIRECTORY_NAME / release.SKILL_FILENAME).is_file()
             )

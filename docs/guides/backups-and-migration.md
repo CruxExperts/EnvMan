@@ -1,5 +1,4 @@
 ---
-layout: default
 title: Encrypted backups and migration
 ---
 

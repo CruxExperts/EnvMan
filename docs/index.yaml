@@ -5,7 +5,7 @@ documents:
     category_label: Getting started
     category_slug: getting-started
     status: ACTIVE
-    last_updated: "2026-09-24"
+    last_updated: "2026-10-19"
     doc_type: how_to
     tags: [installation, uv, updates]
   - id: guide-tui
@@ -14,7 +14,7 @@ documents:
     category_label: Guides
     category_slug: guides
     status: ACTIVE
-    last_updated: "2026-09-24"
+    last_updated: "2026-10-19"
     doc_type: guide
     tags: [tui, curses]
   - id: guide-cli
@@ -59,7 +59,7 @@ documents:
     category_label: Reference
     category_slug: reference
     status: ACTIVE
-    last_updated: "2026-09-24"
+    last_updated: "2026-10-19"
     doc_type: reference
     tags: [release, installer, updates]
   - id: development-architecture
@@ -86,7 +86,7 @@ documents:
     category_label: Development
     category_slug: development
     status: ACTIVE
-    last_updated: "2026-09-24"
+    last_updated: "2026-10-19"
     doc_type: reference
     tags: [versioning, releases]
   - id: governance-publishing
@@ -94,7 +94,7 @@ documents:
     title: Historical v0.1.5 publishing checklist
     category_label: Governance
     category_slug: governance
-    status: ACTIVE
-    last_updated: "2026-09-24"
+    status: ARCHIVED
+    last_updated: "2026-10-19"
     doc_type: checklist
     tags: [publishing, github]

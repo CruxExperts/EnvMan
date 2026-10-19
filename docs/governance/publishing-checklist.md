@@ -1,9 +1,11 @@
 ---
-layout: default
 title: Historical v0.1.5 publishing checklist
 ---
 
 # Historical v0.1.5 publishing checklist
+
+**Status: ARCHIVED.** GitHub Pages was retired for v0.1.11. Current documentation
+lives in this repository; this historical checklist is not a deployment recipe.
 
 This checklist records the immutable Envman 0.1.5 release procedure. Do not rerun its tag or publication steps: v0.1.5 predates the optional agent skill and cannot be replaced. Every box is intentionally unchecked: historical evidence is for the controller, while GitHub and publication steps required explicit remote review.
 

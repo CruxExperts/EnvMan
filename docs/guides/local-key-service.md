@@ -1,11 +1,10 @@
 ---
-layout: default
 title: Local storage key service
 ---
 
 # Local storage key service
 
-**Status: implemented, pending isolated deployment acceptance.** This optional
+**Status: experimental in v0.1.11, pending isolated deployment acceptance.** This optional
 Linux provider separates storage keys from user homes. It uses the existing
 authenticated store and needs no TPM, desktop keyring, recurring prompt, or
 network service. Ordinary installation remains in file-provider mode. Nothing
@@ -196,7 +195,7 @@ this machine or install a system service. Migration and retained-loader tests
 cover failure without partial exports, provider changes, historical snapshots,
 and recovery without the selected service.
 
-Before release acceptance on a deployment, verify production systemd activation,
+Before relying on service mode on a deployment, verify production systemd activation,
 cross-UID denial, desktop terminal startup, SSH public-key login, unattended
 loading after reboot, and cold/warm shell overhead on a modest isolated VM.
 Repository tests do not establish those desktop, SSH, or reboot claims. See
